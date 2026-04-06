@@ -10,6 +10,7 @@
     .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
     .card { background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px; }
     button { cursor:pointer; }
+    img { vertical-align:middle; }
   </style>
 </head>
 <body>
@@ -49,16 +50,16 @@
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
 const logos = {
-  CSK:"https://1000logos.net/wp-content/uploads/2021/04/Chennai-Super-Kings-logo.png",
-  MI:"https://1000logos.net/wp-content/uploads/2021/04/Mumbai-Indians-logo.png",
-  RCB:"https://1000logos.net/wp-content/uploads/2021/04/Royal-Challengers-Bangalore-logo.png",
-  SRH:"https://1000logos.net/wp-content/uploads/2021/04/Sunrisers-Hyderabad-logo.png",
-  RR:"https://1000logos.net/wp-content/uploads/2021/04/Rajasthan-Royals-logo.png",
-  DC:"https://1000logos.net/wp-content/uploads/2021/04/Delhi-Capitals-logo.png",
-  GT:"https://1000logos.net/wp-content/uploads/2022/02/Gujarat-Titans-logo.png",
-  LSG:"https://1000logos.net/wp-content/uploads/2022/02/Lucknow-Super-Giants-logo.png",
-  KKR:"https://1000logos.net/wp-content/uploads/2021/04/Kolkata-Knight-Riders-logo.png",
-  PBKS:"https://1000logos.net/wp-content/uploads/2021/04/Punjab-Kings-logo.png"
+  CSK:"https://upload.wikimedia.org/wikipedia/en/thumb/2/2e/Chennai_Super_Kings_Logo.svg/200px-Chennai_Super_Kings_Logo.svg.png",
+  MI:"https://upload.wikimedia.org/wikipedia/en/thumb/c/cd/Mumbai_Indians_Logo.svg/200px-Mumbai_Indians_Logo.svg.png",
+  RCB:"https://upload.wikimedia.org/wikipedia/en/thumb/4/4a/Royal_Challengers_Bangalore_Logo.svg/200px-Royal_Challengers_Bangalore_Logo.svg.png",
+  SRH:"https://upload.wikimedia.org/wikipedia/en/thumb/8/81/Sunrisers_Hyderabad.svg/200px-Sunrisers_Hyderabad.svg.png",
+  RR:"https://upload.wikimedia.org/wikipedia/en/thumb/6/60/Rajasthan_Royals_Logo.svg/200px-Rajasthan_Royals_Logo.svg.png",
+  DC:"https://upload.wikimedia.org/wikipedia/en/thumb/2/2f/Delhi_Capitals.svg/200px-Delhi_Capitals.svg.png",
+  GT:"https://upload.wikimedia.org/wikipedia/en/thumb/0/09/Gujarat_Titans_Logo.svg/200px-Gujarat_Titans_Logo.svg.png",
+  LSG:"https://upload.wikimedia.org/wikipedia/en/thumb/5/5c/Lucknow_Super_Giants_Logo.svg/200px-Lucknow_Super_Giants_Logo.svg.png",
+  KKR:"https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Kolkata_Knight_Riders_Logo.svg/200px-Kolkata_Knight_Riders_Logo.svg.png",
+  PBKS:"https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/Punjab_Kings_Logo.svg/200px-Punjab_Kings_Logo.svg.png"
 };
 
 let table = JSON.parse(localStorage.getItem("table")) || teams.map(t => ({
@@ -70,18 +71,20 @@ let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
 const MAX_BALLS = 60;
 
-const oversToBalls = (overs) => {
+// overs → balls
+function oversToBalls(overs){
   let [o,b] = overs.split(".");
   o = parseInt(o)||0;
   b = parseInt(b)||0;
   if(b>=6) return null;
   return o*6 + b;
-};
+}
 
-const calcNRR = (t) => {
+// NRR
+function calcNRR(t){
   if(t.ballsFaced===0 || t.ballsBowled===0) return 0;
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
-};
+}
 
 function render(){
   const body = document.getElementById("tableBody");
@@ -184,10 +187,11 @@ function deleteMatch(index){
     runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
   }));
 
-  const old = [...matches];
-  matches = [];
+  const tempMatches = [...matches];
 
-  old.reverse().forEach(m => addMatchFromHistory(m));
+  tempMatches.slice().reverse().forEach(m => {
+    addMatchFromHistory(m);
+  });
 
   localStorage.setItem("matches", JSON.stringify(matches));
   render();
@@ -217,10 +221,9 @@ function addMatchFromHistory(m){
   else { B.won++; B.points+=2; A.lost++; }
 
   table.forEach(t=> t.nrr = calcNRR(t));
-
-  matches.unshift(m);
 }
 
+// dropdown
 teams.forEach(t=>{
   document.getElementById("teamA").innerHTML += `<option>${t}</option>`;
   document.getElementById("teamB").innerHTML += `<option>${t}</option>`;
