@@ -1,160 +1,245 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Match Schedule</title>
+  <title>Points Table</title>
 
   <style>
-    body {
-      background:#020617;
-      color:white;
-      font-family:sans-serif;
-      padding:20px;
-    }
+    body { background:#020617; color:white; font-family:sans-serif; padding:20px; }
 
-    h1 { margin-bottom:20px; }
-    h2 { margin-top:30px; color:#22c55e; }
-
-    .match {
+    .input-box {
       display:flex;
-      align-items:center;
-      justify-content:space-between;
-      background:#1e293b;
-      padding:12px 20px;
-      border-radius:12px;
-      margin:10px 0;
-      transition:0.3s;
-      cursor:pointer;
-    }
-
-    .match:hover {
-      transform:scale(1.02);
-      background:#334155;
-    }
-
-    .match.completed {
-      background:#052e1f;
-      border:1px solid #22c55e;
-      cursor:not-allowed;
-      opacity:0.7;
-    }
-
-    .team {
-      display:flex;
-      align-items:center;
       gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
     }
 
-    .team img {
-      width:30px;
+    input, select {
+      padding:8px;
+      border-radius:6px;
+      border:none;
     }
-
-    .vs { opacity:0.6; }
-
-    .status {
-      font-size:12px;
-      padding:4px 10px;
-      border-radius:20px;
-    }
-
-    .done { background:#22c55e; color:black; }
-    .upcoming { background:#334155; }
 
     button {
-      margin-bottom:20px;
-      padding:10px 15px;
+      padding:8px 12px;
       background:#14532d;
       color:white;
       border:none;
       border-radius:6px;
       cursor:pointer;
     }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+    }
+
+    th, td {
+      padding:10px;
+      border-bottom:1px solid #334155;
+      text-align:center;
+    }
+
+    .top4 { background:#14532d; }
+
+    .card {
+      background:#1e293b;
+      padding:10px;
+      margin:10px 0;
+      border-radius:8px;
+    }
   </style>
 </head>
 
 <body>
 
-<button onclick="location.href='index.html'">← Back</button>
+<h1>Points Table</h1>
 
-<h1>Match Schedule (League Stage)</h1>
+<div class="input-box">
+  <select id="teamA"></select>
+  <input id="runsA" placeholder="Runs A">
+  <input id="oversA" placeholder="Overs A">
+  <input id="wkA" placeholder="Wk A (0-3)">
+
+  <select id="teamB"></select>
+  <input id="runsB" placeholder="Runs B">
+  <input id="oversB" placeholder="Overs B">
+  <input id="wkB" placeholder="Wk B (0-3)">
+
+  <select id="batFirst">
+    <option value="A">A Bats First</option>
+    <option value="B">B Bats First</option>
+  </select>
+
+  <button onclick="addMatch()">Add Match</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th><th>NRR</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<h2>Match History</h2>
+<div id="history"></div>
 
 <script>
-const logos = {
-  CSK:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/csk.png",
-  MI:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/mi.png",
-  RCB:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rcb.png",
-  SRH:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/srh.png",
-  RR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rr.png",
-  DC:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/dc.png",
-  GT:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/gt.png",
-  LSG:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/lsg.png",
-  KKR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/kkr.png",
-  PBKS:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/pbks.png"
-};
+const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
-let played = JSON.parse(localStorage.getItem("matches")) || [];
+let table = JSON.parse(localStorage.getItem("table")) || [];
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
-// 🔴 STRICT FIXTURE MATCH (NO REVERSE)
-function isPlayed(team1, team2){
-  return played.some(m =>
-    m.teamA === team1 && m.teamB === team2
-  );
+// 🔴 AUTO-REPAIR OLD DATA
+matches = matches.map(m => ({
+  teamA: m.teamA,
+  teamB: m.teamB,
+  rA: m.rA,
+  rB: m.rB,
+  wkA: (m.wkA !== undefined && !isNaN(m.wkA)) ? m.wkA : 0,
+  wkB: (m.wkB !== undefined && !isNaN(m.wkB)) ? m.wkB : 0,
+  oversA: m.oversA || "",
+  oversB: m.oversB || ""
+}));
+
+localStorage.setItem("matches", JSON.stringify(matches));
+
+if(!table.length){
+  table = teams.map(t => ({
+    team:t, played:0, won:0, lost:0, points:0,
+    runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
+  }));
 }
 
-const schedule = [
-["WEEK 1",["RCB","MI"],["PBKS","LSG"],["DC","GT"],["CSK","SRH"],["KKR","RR"]],
-["WEEK 2",["RCB","LSG"],["PBKS","GT"],["DC","SRH"],["CSK","RR"],["KKR","MI"]],
-["WEEK 3",["RCB","GT"],["PBKS","SRH"],["DC","RR"],["CSK","MI"],["KKR","LSG"]],
-["WEEK 4",["RCB","SRH"],["PBKS","RR"],["DC","MI"],["CSK","LSG"],["KKR","GT"]],
-["WEEK 5",["RCB","RR"],["PBKS","MI"],["DC","LSG"],["CSK","GT"],["KKR","SRH"]],
-["WEEK 6",["MI","RCB"],["LSG","PBKS"],["GT","DC"],["SRH","CSK"],["RR","KKR"]],
-["WEEK 7",["LSG","RCB"],["GT","PBKS"],["SRH","DC"],["RR","CSK"],["MI","KKR"]],
-["WEEK 8",["GT","RCB"],["SRH","PBKS"],["RR","DC"],["MI","CSK"],["LSG","KKR"]],
-["WEEK 9",["SRH","RCB"],["RR","PBKS"],["MI","DC"],["LSG","CSK"],["GT","KKR"]],
-["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
-];
+function oversToBalls(overs){
+  let [o,b] = (overs||"").split(".");
+  return (parseInt(o)||0)*6 + (parseInt(b)||0);
+}
 
-const container = document.body;
+function calcNRR(t){
+  if(!t.ballsFaced || !t.ballsBowled) return 0;
+  return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
+}
 
-schedule.forEach(week => {
-  const title = document.createElement("h2");
-  title.innerText = week[0];
-  container.appendChild(title);
+function render(){
+  let body = document.getElementById("tableBody");
+  body.innerHTML="";
 
-  week.slice(1).forEach(match => {
+  table.sort((a,b)=> b.points-a.points || b.nrr-a.nrr);
 
-    const done = isPlayed(match[0], match[1]);
+  table.forEach((t,i)=>{
+    body.innerHTML += `
+    <tr class="${i<4?'top4':''}">
+      <td>${t.team}</td>
+      <td>${t.played}</td>
+      <td>${t.won}</td>
+      <td>${t.lost}</td>
+      <td>${t.points}</td>
+      <td>${t.nrr}</td>
+    </tr>`;
+  });
 
-    const div = document.createElement("div");
-    div.className = "match " + (done ? "completed" : "");
+  renderHistory();
+}
 
-    div.innerHTML = `
-      <div class="team">
-        <img src="${logos[match[0]]}">
-        ${match[0]}
-      </div>
+function renderHistory(){
+  let div=document.getElementById("history");
+  div.innerHTML="";
 
-      <div class="vs">VS</div>
+  matches.forEach(m=>{
 
-      <div class="team">
-        ${match[1]}
-        <img src="${logos[match[1]]}">
-      </div>
+    let wkA = m.wkA ?? 0;
+    let wkB = m.wkB ?? 0;
 
-      <div class="status ${done ? 'done' : 'upcoming'}">
-        ${done ? 'Completed' : 'Upcoming'}
-      </div>
-    `;
+    let result = "";
 
-    // 🔴 LOCK SYSTEM
-    if(!done){
-      div.onclick = () => {
-        window.location.href = `points.html?teamA=${match[0]}&teamB=${match[1]}`;
-      };
+    if(m.rA > m.rB){
+      result = `${m.teamA} won by ${m.rA - m.rB} runs`;
+    } else {
+      let w = 3 - (m.wkB ?? 0);
+      result = `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
     }
 
-    container.appendChild(div);
+    div.innerHTML+=`
+    <div class="card">
+      ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
+      ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
+      <br>${result}
+    </div>`;
   });
+}
+
+function addMatch(){
+  let teamA=teamAEl.value;
+  let teamB=teamBEl.value;
+
+  let rA=parseInt(runsA.value);
+  let rB=parseInt(runsB.value);
+
+  let wA=parseInt(wkA.value);
+  let wB=parseInt(wkB.value);
+
+  let bA=oversToBalls(oversA.value);
+  let bB=oversToBalls(oversB.value);
+
+  let A=table.find(t=>t.team===teamA);
+  let B=table.find(t=>t.team===teamB);
+
+  A.played++; B.played++;
+
+  A.runsFor+=rA; A.runsAgainst+=rB;
+  B.runsFor+=rB; B.runsAgainst+=rA;
+
+  A.ballsFaced+=bA; A.ballsBowled+=bB;
+  B.ballsFaced+=bB; B.ballsBowled+=bA;
+
+  if(rA>rB){ A.won++; A.points+=2; B.lost++; }
+  else{ B.won++; B.points+=2; A.lost++; }
+
+  table.forEach(t=>t.nrr=calcNRR(t));
+
+  matches.unshift({
+    teamA,teamB,rA,rB,
+    wkA: (isNaN(wA)?0:wA),
+    wkB: (isNaN(wB)?0:wB),
+    oversA:oversA.value,
+    oversB:oversB.value
+  });
+
+  localStorage.setItem("table", JSON.stringify(table));
+  localStorage.setItem("matches", JSON.stringify(matches));
+
+  render();
+}
+
+// dropdown refs
+const teamAEl=document.getElementById("teamA");
+const teamBEl=document.getElementById("teamB");
+const runsA=document.getElementById("runsA");
+const runsB=document.getElementById("runsB");
+const wkA=document.getElementById("wkA");
+const wkB=document.getElementById("wkB");
+const oversA=document.getElementById("oversA");
+const oversB=document.getElementById("oversB");
+
+teams.forEach(t=>{
+  teamAEl.innerHTML+=`<option>${t}</option>`;
+  teamBEl.innerHTML+=`<option>${t}</option>`;
 });
+
+// 🔴 AUTO-FILL FROM SCHEDULE
+const params = new URLSearchParams(window.location.search);
+const tA = params.get("teamA");
+const tB = params.get("teamB");
+
+if(tA && tB){
+  teamAEl.value = tA;
+  teamBEl.value = tB;
+}
+
+render();
 </script>
 
 </body>
