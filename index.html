@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Points Table</title>
+  <style>
+    body { background:#0f172a; color:white; font-family:sans-serif; padding:20px; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:10px; text-align:center; border-bottom:1px solid #334155; }
+    .top4 { background:#14532d; }
+    .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+
+<h1>Points Table</h1>
+
+<div class="input-box">
+  <select id="teamA"></select>
+  <input id="scoreA" placeholder="Runs A">
+  <input id="oversA" placeholder="Overs A (e.g. 9.3)">
+
+  <select id="teamB"></select>
+  <input id="scoreB" placeholder="Runs B">
+  <input id="oversB" placeholder="Overs B">
+
+  <button onclick="addMatch()">Add Match</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th><th>NRR</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<script>
+const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
+
+const logos = {
+  CSK:"https://upload.wikimedia.org/wikipedia/en/2/2e/Chennai_Super_Kings_Logo.svg",
+  MI:"https://upload.wikimedia.org/wikipedia/en/c/cd/Mumbai_Indians_Logo.svg",
+  RCB:"https://upload.wikimedia.org/wikipedia/en/4/4a/Royal_Challengers_Bangalore_Logo.svg",
+  SRH:"https://upload.wikimedia.org/wikipedia/en/8/81/Sunrisers_Hyderabad.svg",
+  RR:"https://upload.wikimedia.org/wikipedia/en/6/60/Rajasthan_Royals_Logo.svg",
+  DC:"https://upload.wikimedia.org/wikipedia/en/2/2f/Delhi_Capitals.svg",
+  GT:"https://upload.wikimedia.org/wikipedia/en/0/09/Gujarat_Titans_Logo.svg",
+  LSG:"https://upload.wikimedia.org/wikipedia/en/5/5c/Lucknow_Super_Giants_Logo.svg",
+  KKR:"https://upload.wikimedia.org/wikipedia/en/4/4c/Kolkata_Knight_Riders_Logo.svg",
+  PBKS:"https://upload.wikimedia.org/wikipedia/en/d/d4/Punjab_Kings_Logo.svg"
+};
+
+let table = JSON.parse(localStorage.getItem("table")) || teams.map(t => ({
+  team:t, played:0, won:0, lost:0, points:0,
+  runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
+}));
+
+const oversToBalls = (overs) => {
+  let [o,b] = overs.split(".");
+  o = parseInt(o)||0;
+  b = parseInt(b)||0;
+  if(b>=6) return null;
+  return o*6 + b;
+};
+
+const calcNRR = (t) => {
+  if(t.ballsFaced===0 || t.ballsBowled===0) return 0;
+  return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
+};
+
+function render(){
+  const body = document.getElementById("tableBody");
+  body.innerHTML="";
+
+  table.sort((a,b)=> b.points-a.points || b.nrr-a.nrr);
+
+  table.forEach((t,i)=>{
+    const row = `
+    <tr class="${i<4?'top4':''}">
+      <td><img src="${logos[t.team]}" width="25"> ${t.team}</td>
+      <td>${t.played}</td>
+      <td>${t.won}</td>
+      <td>${t.lost}</td>
+      <td>${t.points}</td>
+      <td>${t.nrr}</td>
+    </tr>`;
+    body.innerHTML += row;
+  });
+
+  localStorage.setItem("table", JSON.stringify(table));
+}
+
+function addMatch(){
+  const teamA = document.getElementById("teamA").value;
+  const teamB = document.getElementById("teamB").value;
+
+  const rA = parseInt(document.getElementById("scoreA").value);
+  const rB = parseInt(document.getElementById("scoreB").value);
+
+  const bA = oversToBalls(document.getElementById("oversA").value);
+  const bB = oversToBalls(document.getElementById("oversB").value);
+
+  if(teamA===teamB) return alert("Same team");
+  if(!rA || !rB || bA==null || bB==null) return alert("Invalid input");
+  if(bA>60 || bB>60) return alert("Max 10 overs");
+
+  let A = table.find(t=>t.team===teamA);
+  let B = table.find(t=>t.team===teamB);
+
+  A.played++; B.played++;
+
+  A.runsFor+=rA; A.runsAgainst+=rB;
+  B.runsFor+=rB; B.runsAgainst+=rA;
+
+  A.ballsFaced+=bA; A.ballsBowled+=bB;
+  B.ballsFaced+=bB; B.ballsBowled+=bA;
+
+  if(rA>rB){ A.won++; A.points+=2; B.lost++; }
+  else { B.won++; B.points+=2; A.lost++; }
+
+  table.forEach(t=> t.nrr = calcNRR(t));
+
+  render();
+}
+
+teams.forEach(t=>{
+  document.getElementById("teamA").innerHTML += `<option>${t}</option>`;
+  document.getElementById("teamB").innerHTML += `<option>${t}</option>`;
+});
+
+render();
+</script>
+
+</body>
+</html>
