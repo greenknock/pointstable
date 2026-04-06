@@ -24,6 +24,7 @@
       margin:10px 0;
       transition:0.3s;
       border:1px solid transparent;
+      cursor:pointer;
     }
 
     .match.completed {
@@ -32,14 +33,14 @@
     }
 
     .match:hover {
-      transform:scale(1.02);
+      transform:scale(1.03);
+      background:#334155;
     }
 
     .team {
       display:flex;
       align-items:center;
       gap:10px;
-      font-weight:500;
     }
 
     .team img {
@@ -47,10 +48,7 @@
       height:30px;
     }
 
-    .vs {
-      opacity:0.6;
-      font-size:14px;
-    }
+    .vs { opacity:0.6; }
 
     .status {
       font-size:12px;
@@ -58,14 +56,8 @@
       border-radius:20px;
     }
 
-    .done {
-      background:#22c55e;
-      color:black;
-    }
-
-    .upcoming {
-      background:#334155;
-    }
+    .done { background:#22c55e; color:black; }
+    .upcoming { background:#334155; }
 
     button {
       margin-bottom:20px;
@@ -112,10 +104,8 @@ const schedule = [
 ["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
 ];
 
-// get played matches
 let played = JSON.parse(localStorage.getItem("matches")) || [];
 
-// helper to check if match is played
 function isPlayed(a,b){
   return played.some(m =>
     (m.teamA===a && m.teamB===b) ||
@@ -154,6 +144,10 @@ schedule.forEach(week => {
         ${done ? 'Completed' : 'Upcoming'}
       </div>
     `;
+
+    div.onclick = () => {
+      window.location.href = `points.html?teamA=${match[0]}&teamB=${match[1]}`;
+    };
 
     container.appendChild(div);
   });
