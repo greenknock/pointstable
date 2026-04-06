@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Points Table</title>
+  <title>Points Table Pro</title>
   <style>
     body { background:#0f172a; color:white; font-family:sans-serif; padding:20px; }
     table { width:100%; border-collapse:collapse; margin-top:20px; }
@@ -9,6 +9,7 @@
     .top4 { background:#14532d; }
     .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
     .card { background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px; }
+    button { padding:8px 12px; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -18,7 +19,7 @@
 <div class="input-box">
   <select id="teamA"></select>
   <input id="runsA" placeholder="Runs A">
-  <input id="oversA" placeholder="Overs A (max 10)">
+  <input id="oversA" placeholder="Overs A">
   <input id="wkA" placeholder="Wk A (0-3)">
 
   <select id="teamB"></select>
@@ -32,6 +33,14 @@
   </select>
 
   <button onclick="addMatch()">Add Match</button>
+</div>
+
+<div style="margin-bottom:15px;">
+  <button onclick="undo()">Undo</button>
+  <button onclick="exportData()">Export</button>
+  <input type="file" onchange="importData(event)">
+  <button onclick="saveTournament()">Save</button>
+  <button onclick="loadTournament()">Load</button>
 </div>
 
 <table>
@@ -49,12 +58,20 @@
 <script>
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
-let table = teams.map(t => ({
-  team:t, played:0, won:0, lost:0, points:0,
-  runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
-}));
+let table = JSON.parse(localStorage.getItem("table"));
+let matches = JSON.parse(localStorage.getItem("matches"));
+let historyStack = JSON.parse(localStorage.getItem("historyStack")) || [];
 
-let matches = [];
+if(!table || !Array.isArray(table)){
+  table = teams.map(t => ({
+    team:t, played:0, won:0, lost:0, points:0,
+    runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
+  }));
+}
+
+if(!matches || !Array.isArray(matches)){
+  matches = [];
+}
 
 const MAX_BALLS = 60;
 
@@ -69,6 +86,15 @@ function oversToBalls(overs){
 function calcNRR(t){
   if(!t.ballsFaced || !t.ballsBowled) return 0;
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
+}
+
+function saveSnapshot(){
+  historyStack.unshift({
+    table: JSON.parse(JSON.stringify(table)),
+    matches: JSON.parse(JSON.stringify(matches))
+  });
+  if(historyStack.length>10) historyStack.pop();
+  localStorage.setItem("historyStack", JSON.stringify(historyStack));
 }
 
 function render(){
@@ -93,24 +119,18 @@ function render(){
 }
 
 function renderHistory(){
-  let div = document.getElementById("history");
+  let div=document.getElementById("history");
   div.innerHTML="";
 
-  matches.forEach(m=>{
+  matches.forEach((m,i)=>{
     let result="";
 
     if(m.batFirst==="A"){
-      if(m.rA>m.rB){
-        result=`${m.teamA} won by ${m.rA-m.rB} runs`;
-      }else{
-        result=`${m.teamB} won by ${3-m.wkB} wickets`;
-      }
+      if(m.rA>m.rB) result=`${m.teamA} won by ${m.rA-m.rB} runs`;
+      else result=`${m.teamB} won by ${3-m.wkB} wicket${(3-m.wkB)>1?'s':''}`;
     }else{
-      if(m.rB>m.rA){
-        result=`${m.teamB} won by ${m.rB-m.rA} runs`;
-      }else{
-        result=`${m.teamA} won by ${3-m.wkA} wickets`;
-      }
+      if(m.rB>m.rA) result=`${m.teamB} won by ${m.rB-m.rA} runs`;
+      else result=`${m.teamA} won by ${3-m.wkA} wicket${(3-m.wkA)>1?'s':''}`;
     }
 
     div.innerHTML+=`
@@ -118,32 +138,31 @@ function renderHistory(){
       ${m.teamA} ${m.rA}/${m.wkA} (${m.oversA}) vs 
       ${m.teamB} ${m.rB}/${m.wkB} (${m.oversB})
       <br>${result}
+      <br><button onclick="deleteMatch(${i})">Delete</button>
     </div>`;
   });
 }
 
 function addMatch(){
-  let teamA=document.getElementById("teamA").value;
-  let teamB=document.getElementById("teamB").value;
+  saveSnapshot();
 
-  let rA=parseInt(document.getElementById("runsA").value);
-  let rB=parseInt(document.getElementById("runsB").value);
+  let teamA=teamAEl.value;
+  let teamB=teamBEl.value;
 
-  let wA=parseInt(document.getElementById("wkA").value);
-  let wB=parseInt(document.getElementById("wkB").value);
+  let rA=parseInt(runsA.value);
+  let rB=parseInt(runsB.value);
 
-  let oA=document.getElementById("oversA").value;
-  let oB=document.getElementById("oversB").value;
+  let wA=parseInt(wkA.value);
+  let wB=parseInt(wkB.value);
 
-  let bA=oversToBalls(oA);
-  let bB=oversToBalls(oB);
+  let bA=oversToBalls(oversA.value);
+  let bB=oversToBalls(oversB.value);
 
-  let batFirst=document.getElementById("batFirst").value;
+  let batFirst=batFirstEl.value;
 
   if(teamA===teamB) return alert("Same team");
   if(!rA||!rB||bA==null||bB==null) return alert("Invalid input");
   if(wA>3||wB>3) return alert("Max 3 wickets");
-  if(bA>60||bB>60) return alert("Max 10 overs");
 
   let A=table.find(t=>t.team===teamA);
   let B=table.find(t=>t.team===teamB);
@@ -165,15 +184,120 @@ function addMatch(){
   table.forEach(t=>t.nrr=calcNRR(t));
 
   matches.unshift({
-    teamA,teamB,rA,rB,wkA:wA,wkB:wB,oversA:oA,oversB:oB,batFirst
+    teamA,teamB,rA,rB,wkA,wkB,
+    oversA:oversA.value,oversB:oversB.value,batFirst
   });
+
+  localStorage.setItem("table", JSON.stringify(table));
+  localStorage.setItem("matches", JSON.stringify(matches));
 
   render();
 }
 
+function deleteMatch(i){
+  saveSnapshot();
+  matches.splice(i,1);
+
+  table = teams.map(t => ({
+    team:t, played:0, won:0, lost:0, points:0,
+    runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
+  }));
+
+  matches.slice().reverse().forEach(m=>{
+    let bA=oversToBalls(m.oversA);
+    let bB=oversToBalls(m.oversB);
+
+    let A=table.find(t=>t.team===m.teamA);
+    let B=table.find(t=>t.team===m.teamB);
+
+    A.played++; B.played++;
+
+    if(m.batFirst==="A" && m.rB<m.rA && m.wkB===3) bB=60;
+    if(m.batFirst==="B" && m.rA<m.rB && m.wkA===3) bA=60;
+
+    A.runsFor+=m.rA; A.runsAgainst+=m.rB;
+    B.runsFor+=m.rB; B.runsAgainst+=m.rA;
+
+    A.ballsFaced+=bA; A.ballsBowled+=bB;
+    B.ballsFaced+=bB; B.ballsBowled+=bA;
+
+    if(m.rA>m.rB){A.won++;A.points+=2;B.lost++;}
+    else{B.won++;B.points+=2;A.lost++;}
+
+    table.forEach(t=>t.nrr=calcNRR(t));
+  });
+
+  localStorage.setItem("table", JSON.stringify(table));
+  localStorage.setItem("matches", JSON.stringify(matches));
+
+  render();
+}
+
+function undo(){
+  if(historyStack.length===0) return alert("Nothing to undo");
+
+  let last=historyStack.shift();
+  table=last.table;
+  matches=last.matches;
+
+  localStorage.setItem("historyStack", JSON.stringify(historyStack));
+  localStorage.setItem("table", JSON.stringify(table));
+  localStorage.setItem("matches", JSON.stringify(matches));
+
+  render();
+}
+
+function exportData(){
+  let blob=new Blob([JSON.stringify({table,matches})]);
+  let a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="backup.json";
+  a.click();
+}
+
+function importData(e){
+  let file=e.target.files[0];
+  let reader=new FileReader();
+
+  reader.onload=function(){
+    let data=JSON.parse(reader.result);
+    table=data.table;
+    matches=data.matches;
+    render();
+  };
+
+  reader.readAsText(file);
+}
+
+function saveTournament(){
+  let name=prompt("Name?");
+  if(!name) return;
+  localStorage.setItem("save_"+name, JSON.stringify({table,matches}));
+}
+
+function loadTournament(){
+  let name=prompt("Name?");
+  let data=JSON.parse(localStorage.getItem("save_"+name));
+  if(!data) return alert("Not found");
+  table=data.table;
+  matches=data.matches;
+  render();
+}
+
+// dropdown refs
+const teamAEl=document.getElementById("teamA");
+const teamBEl=document.getElementById("teamB");
+const runsA=document.getElementById("runsA");
+const runsB=document.getElementById("runsB");
+const wkA=document.getElementById("wkA");
+const wkB=document.getElementById("wkB");
+const oversA=document.getElementById("oversA");
+const oversB=document.getElementById("oversB");
+const batFirstEl=document.getElementById("batFirst");
+
 teams.forEach(t=>{
-  teamA.innerHTML+=`<option>${t}</option>`;
-  teamB.innerHTML+=`<option>${t}</option>`;
+  teamAEl.innerHTML+=`<option>${t}</option>`;
+  teamBEl.innerHTML+=`<option>${t}</option>`;
 });
 
 render();
