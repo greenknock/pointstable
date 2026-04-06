@@ -2,8 +2,6 @@
 <html>
 <head>
   <title>TPL</title>
-
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 
   <style>
@@ -11,132 +9,149 @@
       margin:0;
       padding:0;
       box-sizing:border-box;
-      font-family:'Poppins', sans-serif;
+      font-family:'Poppins',sans-serif;
     }
 
     body {
       height:100vh;
-      background: radial-gradient(circle at top, #020617, #020617 40%, #0f172a);
-      display:flex;
-      justify-content:center;
-      align-items:center;
+      background:#020617;
       color:white;
       overflow:hidden;
     }
 
-    /* BACKGROUND GLOW */
-    .glow {
+    /* BACKGROUND GRADIENT + GLOW */
+    .bg {
       position:absolute;
-      width:400px;
-      height:400px;
-      background:radial-gradient(circle, #22c55e33, transparent);
-      top:-100px;
-      left:-100px;
-      filter:blur(100px);
+      width:100%;
+      height:100%;
+      background: radial-gradient(circle at 20% 30%, #22c55e22, transparent 40%),
+                  radial-gradient(circle at 80% 70%, #3b82f622, transparent 40%);
+      z-index:0;
     }
 
-    /* MAIN CARD */
+    /* MAIN LAYOUT */
     .container {
-      backdrop-filter: blur(20px);
-      background: rgba(255,255,255,0.05);
-      border:1px solid rgba(255,255,255,0.1);
-      border-radius:20px;
-      padding:50px;
-      text-align:center;
-      box-shadow:0 0 40px rgba(0,0,0,0.5);
-      animation:fadeUp 1s ease;
+      position:relative;
+      z-index:1;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:60px;
     }
 
-    /* TITLE */
+    /* LEFT SIDE */
+    .left {
+      max-width:500px;
+      animation:fadeLeft 1s ease;
+    }
+
     .title {
-      font-size:64px;
+      font-size:80px;
       font-weight:700;
-      letter-spacing:5px;
-      background:linear-gradient(90deg,#22c55e,#4ade80,#86efac);
+      background:linear-gradient(90deg,#22c55e,#4ade80);
       -webkit-background-clip:text;
       -webkit-text-fill-color:transparent;
-      margin-bottom:10px;
     }
 
     .subtitle {
+      margin:20px 0;
       opacity:0.7;
-      margin-bottom:30px;
-    }
-
-    /* IMAGE */
-    .cover-img {
-      width:220px;
-      margin-bottom:30px;
-      border-radius:15px;
-      box-shadow:0 10px 30px rgba(0,0,0,0.6);
-      transition:0.4s;
-    }
-
-    .cover-img:hover {
-      transform:scale(1.05) rotate(-2deg);
+      font-size:18px;
     }
 
     /* BUTTONS */
     .buttons {
       display:flex;
       gap:20px;
-      justify-content:center;
-      flex-wrap:wrap;
+      margin-top:30px;
     }
 
     .btn {
-      padding:14px 28px;
+      padding:16px 32px;
       border:none;
-      border-radius:12px;
+      border-radius:14px;
       font-size:16px;
       cursor:pointer;
       color:white;
-      position:relative;
-      overflow:hidden;
       transition:0.3s;
     }
 
-    /* GRADIENT BUTTONS */
-    .btn-green {
+    .green {
       background:linear-gradient(135deg,#16a34a,#22c55e);
     }
 
-    .btn-blue {
+    .blue {
       background:linear-gradient(135deg,#2563eb,#3b82f6);
     }
 
     .btn:hover {
       transform:translateY(-5px) scale(1.05);
-      box-shadow:0 10px 25px rgba(0,0,0,0.5);
+      box-shadow:0 10px 30px rgba(0,0,0,0.6);
     }
 
-    /* BUTTON GLOW EFFECT */
-    .btn::after {
-      content:'';
+    /* RIGHT SIDE IMAGE */
+    .right {
+      position:relative;
+      animation:fadeRight 1s ease;
+    }
+
+    .image {
+      width:420px;
+      border-radius:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.7);
+      transition:0.4s;
+    }
+
+    .image:hover {
+      transform:scale(1.05) rotate(-2deg);
+    }
+
+    /* FLOATING BALL */
+    .ball {
       position:absolute;
-      width:100%;
-      height:100%;
-      top:0;
-      left:-100%;
-      background:linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent);
-      transition:0.5s;
+      width:30px;
+      top:10%;
+      left:-40px;
+      animation:float 3s infinite ease-in-out;
     }
 
-    .btn:hover::after {
-      left:100%;
+    /* ANIMATIONS */
+    @keyframes fadeLeft {
+      from {opacity:0; transform:translateX(-40px);}
+      to {opacity:1; transform:translateX(0);}
     }
 
-    /* ANIMATION */
-    @keyframes fadeUp {
-      from {opacity:0; transform:translateY(40px);}
-      to {opacity:1; transform:translateY(0);}
+    @keyframes fadeRight {
+      from {opacity:0; transform:translateX(40px);}
+      to {opacity:1; transform:translateX(0);}
+    }
+
+    @keyframes float {
+      0% {transform:translateY(0);}
+      50% {transform:translateY(-20px);}
+      100% {transform:translateY(0);}
     }
 
     /* MOBILE */
-    @media(max-width:600px){
-      .container { padding:30px; }
-      .title { font-size:42px; }
-      .cover-img { width:160px; }
+    @media(max-width:900px){
+      .container {
+        flex-direction:column;
+        text-align:center;
+        justify-content:center;
+      }
+
+      .right {
+        margin-top:30px;
+      }
+
+      .image {
+        width:260px;
+      }
+
+      .title {
+        font-size:50px;
+      }
     }
 
   </style>
@@ -144,24 +159,32 @@
 
 <body>
 
-<div class="glow"></div>
+<div class="bg"></div>
 
 <div class="container">
 
-  <div class="title">TPL</div>
-  <div class="subtitle">Track • Play • Lead</div>
+  <!-- LEFT -->
+  <div class="left">
+    <div class="title">TPL</div>
+    <div class="subtitle">Track • Play • Lead your tournament like a pro.</div>
 
-  <!-- COVER DRIVE IMAGE -->
-  <img class="cover-img" src="https://images.unsplash.com/photo-1593341646782-e0b495cff86d" alt="cricket">
+    <div class="buttons">
+      <button class="btn green" onclick="location.href='points.html'">
+        Points Table
+      </button>
 
-  <div class="buttons">
-    <button class="btn btn-green" onclick="location.href='points.html'">
-      Points Table
-    </button>
+      <button class="btn blue" onclick="location.href='schedule.html'">
+        Match Schedule
+      </button>
+    </div>
+  </div>
 
-    <button class="btn btn-blue" onclick="location.href='schedule.html'">
-      Match Schedule
-    </button>
+  <!-- RIGHT -->
+  <div class="right">
+    <img class="image" src="https://images.unsplash.com/photo-1593341646782-e0b495cff86d">
+    
+    <!-- optional floating ball -->
+    <img class="ball" src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Cricket_ball.svg">
   </div>
 
 </div>
