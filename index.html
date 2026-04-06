@@ -21,10 +21,12 @@
   <select id="teamA"></select>
   <input id="scoreA" placeholder="Runs A">
   <input id="oversA" placeholder="Overs A (e.g. 9.3)">
+  <input id="wicketsA" placeholder="Wickets A (0-3)">
 
   <select id="teamB"></select>
   <input id="scoreB" placeholder="Runs B">
   <input id="oversB" placeholder="Overs B">
+  <input id="wicketsB" placeholder="Wickets B (0-3)">
 
   <select id="batFirst">
     <option value="A">Team A Bats First</option>
@@ -49,7 +51,6 @@
 <script>
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
-// 🔴 STABLE LOGO LINKS
 const logos = {
   CSK:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/csk.png",
   MI:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/mi.png",
@@ -63,20 +64,12 @@ const logos = {
   PBKS:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/pbks.png"
 };
 
-// 🔴 CLEAN INIT (avoid corrupted data)
-let table = JSON.parse(localStorage.getItem("table"));
-let matches = JSON.parse(localStorage.getItem("matches"));
+let table = JSON.parse(localStorage.getItem("table")) || teams.map(t => ({
+  team:t, played:0, won:0, lost:0, points:0,
+  runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
+}));
 
-if(!table || !Array.isArray(table)) {
-  table = teams.map(t => ({
-    team:t, played:0, won:0, lost:0, points:0,
-    runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
-  }));
-}
-
-if(!matches || !Array.isArray(matches)) {
-  matches = [];
-}
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
 const MAX_BALLS = 60;
 
@@ -102,7 +95,7 @@ function render(){
   table.forEach((t,i)=>{
     body.innerHTML += `
     <tr class="${i<4?'top4':''}">
-      <td><img src="${logos[t.team]}" width="25" onerror="this.style.display='none'"> ${t.team}</td>
+      <td><img src="${logos[t.team]}" width="25"> ${t.team}</td>
       <td>${t.played}</td>
       <td>${t.won}</td>
       <td>${t.lost}</td>
@@ -125,14 +118,35 @@ function renderHistory(){
   }
 
   matches.forEach((m,index)=>{
+
+    let result = "";
+
+    if (m.batFirst === "A") {
+      if (m.rA > m.rB) {
+        result = `${m.teamA} won by ${m.rA - m.rB} runs`;
+      } else {
+        result = `${m.teamB} won by ${3 - m.wicketsB} wickets`;
+      }
+    }
+
+    if (m.batFirst === "B") {
+      if (m.rB > m.rA) {
+        result = `${m.teamB} won by ${m.rB - m.rA} runs`;
+      } else {
+        result = `${m.teamA} won by ${3 - m.wicketsA} wickets`;
+      }
+    }
+
     const batFirstText = m.batFirst === "A" ? m.teamA : m.teamB;
 
     div.innerHTML += `
       <div class="card">
-        <b>${m.teamA}</b> ${m.rA}/${m.oversA} vs 
-        <b>${m.teamB}</b> ${m.rB}/${m.oversB}
+        <b>${m.teamA}</b> ${m.rA}/${m.wicketsA} (${m.oversA}) vs 
+        <b>${m.teamB}</b> ${m.rB}/${m.wicketsB} (${m.oversB})
         <br>
         <small>${batFirstText} batted first</small>
+        <br>
+        <b>${result}</b>
         <br><br>
         <button onclick="deleteMatch(${index})">Delete</button>
       </div>
@@ -148,20 +162,23 @@ function addMatch(){
   const rA = parseInt(document.getElementById("scoreA").value);
   const rB = parseInt(document.getElementById("scoreB").value);
 
+  const wA = parseInt(document.getElementById("wicketsA").value);
+  const wB = parseInt(document.getElementById("wicketsB").value);
+
   let bA = oversToBalls(document.getElementById("oversA").value);
   let bB = oversToBalls(document.getElementById("oversB").value);
 
   if(teamA===teamB) return alert("Same team");
   if(!rA || !rB || bA==null || bB==null) return alert("Invalid input");
-  if(bA > MAX_BALLS || bB > MAX_BALLS) return alert("Max 10 overs");
+  if(wA>3 || wB>3) return alert("Max 3 wickets");
 
   let A = table.find(t=>t.team===teamA);
   let B = table.find(t=>t.team===teamB);
 
   A.played++; B.played++;
 
-  if (batFirst === "A" && rB < rA) bB = MAX_BALLS;
-  if (batFirst === "B" && rA < rB) bA = MAX_BALLS;
+  if (batFirst === "A" && rB < rA && wB === 3) bB = MAX_BALLS;
+  if (batFirst === "B" && rA < rB && wA === 3) bA = MAX_BALLS;
 
   A.runsFor+=rA; A.runsAgainst+=rB;
   B.runsFor+=rB; B.runsAgainst+=rA;
@@ -176,6 +193,7 @@ function addMatch(){
 
   matches.unshift({
     teamA, teamB, rA, rB,
+    wicketsA:wA, wicketsB:wB,
     oversA: document.getElementById("oversA").value,
     oversB: document.getElementById("oversB").value,
     batFirst
@@ -189,13 +207,11 @@ function addMatch(){
 function deleteMatch(index){
   matches.splice(index,1);
 
-  // reset table
   table = teams.map(t => ({
     team:t, played:0, won:0, lost:0, points:0,
     runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
   }));
 
-  // replay matches
   matches.slice().reverse().forEach(m => {
     let bA = oversToBalls(m.oversA);
     let bB = oversToBalls(m.oversB);
@@ -205,8 +221,8 @@ function deleteMatch(index){
 
     A.played++; B.played++;
 
-    if (m.batFirst === "A" && m.rB < m.rA) bB = MAX_BALLS;
-    if (m.batFirst === "B" && m.rA < m.rB) bA = MAX_BALLS;
+    if (m.batFirst === "A" && m.rB < m.rA && m.wicketsB===3) bB = MAX_BALLS;
+    if (m.batFirst === "B" && m.rA < m.rB && m.wicketsA===3) bA = MAX_BALLS;
 
     A.runsFor+=m.rA; A.runsAgainst+=m.rB;
     B.runsFor+=m.rB; B.runsAgainst+=m.rA;
@@ -224,7 +240,6 @@ function deleteMatch(index){
   render();
 }
 
-// dropdown
 teams.forEach(t=>{
   document.getElementById("teamA").innerHTML += `<option>${t}</option>`;
   document.getElementById("teamB").innerHTML += `<option>${t}</option>`;
