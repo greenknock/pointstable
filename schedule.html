@@ -2,103 +2,163 @@
 <html>
 <head>
   <title>Match Schedule</title>
+
   <style>
-    body { background:#0f172a; color:white; font-family:sans-serif; padding:20px; }
-    h1, h2 { margin-top:20px; }
-    .card {
-      background:#1e293b;
-      padding:10px;
-      margin-bottom:10px;
-      border-radius:8px;
+    body {
+      background:#020617;
+      color:white;
+      font-family:sans-serif;
+      padding:20px;
     }
+
+    h1 { margin-bottom:20px; }
+    h2 { margin-top:30px; color:#22c55e; }
+
+    .match {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background:#1e293b;
+      padding:12px 20px;
+      border-radius:12px;
+      margin:10px 0;
+      transition:0.3s;
+      border:1px solid transparent;
+    }
+
+    .match.completed {
+      border:1px solid #22c55e;
+      background:#052e1f;
+    }
+
+    .match:hover {
+      transform:scale(1.02);
+    }
+
+    .team {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:500;
+    }
+
+    .team img {
+      width:30px;
+      height:30px;
+    }
+
+    .vs {
+      opacity:0.6;
+      font-size:14px;
+    }
+
+    .status {
+      font-size:12px;
+      padding:4px 10px;
+      border-radius:20px;
+    }
+
+    .done {
+      background:#22c55e;
+      color:black;
+    }
+
+    .upcoming {
+      background:#334155;
+    }
+
     button {
       margin-bottom:20px;
-      padding:10px;
+      padding:10px 15px;
       background:#14532d;
       color:white;
       border:none;
-      border-radius:5px;
+      border-radius:6px;
       cursor:pointer;
     }
   </style>
 </head>
+
 <body>
 
 <button onclick="location.href='index.html'">← Back</button>
 
-<h1>Match Schedule (League Stage)</h1>
+<h1>Match Schedule</h1>
 
-<h2>WEEK 1</h2>
-<div class="card">RCB vs MI</div>
-<div class="card">PBKS vs LSG</div>
-<div class="card">DC vs GT</div>
-<div class="card">CSK vs SRH</div>
-<div class="card">KKR vs RR</div>
+<script>
+const logos = {
+  CSK:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/csk.png",
+  MI:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/mi.png",
+  RCB:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rcb.png",
+  SRH:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/srh.png",
+  RR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rr.png",
+  DC:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/dc.png",
+  GT:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/gt.png",
+  LSG:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/lsg.png",
+  KKR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/kkr.png",
+  PBKS:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/pbks.png"
+};
 
-<h2>WEEK 2</h2>
-<div class="card">RCB vs LSG</div>
-<div class="card">PBKS vs GT</div>
-<div class="card">DC vs SRH</div>
-<div class="card">CSK vs RR</div>
-<div class="card">KKR vs MI</div>
+const schedule = [
+["WEEK 1",["RCB","MI"],["PBKS","LSG"],["DC","GT"],["CSK","SRH"],["KKR","RR"]],
+["WEEK 2",["RCB","LSG"],["PBKS","GT"],["DC","SRH"],["CSK","RR"],["KKR","MI"]],
+["WEEK 3",["RCB","GT"],["PBKS","SRH"],["DC","RR"],["CSK","MI"],["KKR","LSG"]],
+["WEEK 4",["RCB","SRH"],["PBKS","RR"],["DC","MI"],["CSK","LSG"],["KKR","GT"]],
+["WEEK 5",["RCB","RR"],["PBKS","MI"],["DC","LSG"],["CSK","GT"],["KKR","SRH"]],
+["WEEK 6",["MI","RCB"],["LSG","PBKS"],["GT","DC"],["SRH","CSK"],["RR","KKR"]],
+["WEEK 7",["LSG","RCB"],["GT","PBKS"],["SRH","DC"],["RR","CSK"],["MI","KKR"]],
+["WEEK 8",["GT","RCB"],["SRH","PBKS"],["RR","DC"],["MI","CSK"],["LSG","KKR"]],
+["WEEK 9",["SRH","RCB"],["RR","PBKS"],["MI","DC"],["LSG","CSK"],["GT","KKR"]],
+["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
+];
 
-<h2>WEEK 3</h2>
-<div class="card">RCB vs GT</div>
-<div class="card">PBKS vs SRH</div>
-<div class="card">DC vs RR</div>
-<div class="card">CSK vs MI</div>
-<div class="card">KKR vs LSG</div>
+// get played matches
+let played = JSON.parse(localStorage.getItem("matches")) || [];
 
-<h2>WEEK 4</h2>
-<div class="card">RCB vs SRH</div>
-<div class="card">PBKS vs RR</div>
-<div class="card">DC vs MI</div>
-<div class="card">CSK vs LSG</div>
-<div class="card">KKR vs GT</div>
+// helper to check if match is played
+function isPlayed(a,b){
+  return played.some(m =>
+    (m.teamA===a && m.teamB===b) ||
+    (m.teamA===b && m.teamB===a)
+  );
+}
 
-<h2>WEEK 5</h2>
-<div class="card">RCB vs RR</div>
-<div class="card">PBKS vs MI</div>
-<div class="card">DC vs LSG</div>
-<div class="card">CSK vs GT</div>
-<div class="card">KKR vs SRH</div>
+const container = document.body;
 
-<h2>SECOND LEG</h2>
+schedule.forEach(week => {
+  const title = document.createElement("h2");
+  title.innerText = week[0];
+  container.appendChild(title);
 
-<h2>WEEK 6</h2>
-<div class="card">MI vs RCB</div>
-<div class="card">LSG vs PBKS</div>
-<div class="card">GT vs DC</div>
-<div class="card">SRH vs CSK</div>
-<div class="card">RR vs KKR</div>
+  week.slice(1).forEach(match => {
 
-<h2>WEEK 7</h2>
-<div class="card">LSG vs RCB</div>
-<div class="card">GT vs PBKS</div>
-<div class="card">SRH vs DC</div>
-<div class="card">RR vs CSK</div>
-<div class="card">MI vs KKR</div>
+    const done = isPlayed(match[0], match[1]);
 
-<h2>WEEK 8</h2>
-<div class="card">GT vs RCB</div>
-<div class="card">SRH vs PBKS</div>
-<div class="card">RR vs DC</div>
-<div class="card">MI vs CSK</div>
-<div class="card">LSG vs KKR</div>
+    const div = document.createElement("div");
+    div.className = "match " + (done ? "completed" : "");
 
-<h2>WEEK 9</h2>
-<div class="card">SRH vs RCB</div>
-<div class="card">RR vs PBKS</div>
-<div class="card">MI vs DC</div>
-<div class="card">LSG vs CSK</div>
-<div class="card">GT vs KKR</div>
+    div.innerHTML = `
+      <div class="team">
+        <img src="${logos[match[0]]}">
+        ${match[0]}
+      </div>
 
-<h2>WEEK 10</h2>
-<div class="card">RR vs RCB</div>
-<div class="card">MI vs PBKS</div>
-<div class="card">LSG vs DC</div>
-<div class="card">GT vs CSK</div>
-<div class="card">SRH vs KKR</div>
+      <div class="vs">VS</div>
+
+      <div class="team">
+        ${match[1]}
+        <img src="${logos[match[1]]}">
+      </div>
+
+      <div class="status ${done ? 'done' : 'upcoming'}">
+        ${done ? 'Completed' : 'Upcoming'}
+      </div>
+    `;
+
+    container.appendChild(div);
+  });
+});
+</script>
 
 </body>
 </html>
