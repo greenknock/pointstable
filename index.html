@@ -9,6 +9,7 @@
     .top4 { background:#14532d; }
     .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
     .card { background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px; }
+    button { cursor:pointer; }
   </style>
 </head>
 <body>
@@ -48,16 +49,16 @@
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
 const logos = {
-  CSK:"https://upload.wikimedia.org/wikipedia/en/2/2e/Chennai_Super_Kings_Logo.svg",
-  MI:"https://upload.wikimedia.org/wikipedia/en/c/cd/Mumbai_Indians_Logo.svg",
-  RCB:"https://upload.wikimedia.org/wikipedia/en/4/4a/Royal_Challengers_Bangalore_Logo.svg",
-  SRH:"https://upload.wikimedia.org/wikipedia/en/8/81/Sunrisers_Hyderabad.svg",
-  RR:"https://upload.wikimedia.org/wikipedia/en/6/60/Rajasthan_Royals_Logo.svg",
-  DC:"https://upload.wikimedia.org/wikipedia/en/2/2f/Delhi_Capitals.svg",
-  GT:"https://upload.wikimedia.org/wikipedia/en/0/09/Gujarat_Titans_Logo.svg",
-  LSG:"https://upload.wikimedia.org/wikipedia/en/5/5c/Lucknow_Super_Giants_Logo.svg",
-  KKR:"https://upload.wikimedia.org/wikipedia/en/4/4c/Kolkata_Knight_Riders_Logo.svg",
-  PBKS:"https://upload.wikimedia.org/wikipedia/en/d/d4/Punjab_Kings_Logo.svg"
+  CSK:"https://1000logos.net/wp-content/uploads/2021/04/Chennai-Super-Kings-logo.png",
+  MI:"https://1000logos.net/wp-content/uploads/2021/04/Mumbai-Indians-logo.png",
+  RCB:"https://1000logos.net/wp-content/uploads/2021/04/Royal-Challengers-Bangalore-logo.png",
+  SRH:"https://1000logos.net/wp-content/uploads/2021/04/Sunrisers-Hyderabad-logo.png",
+  RR:"https://1000logos.net/wp-content/uploads/2021/04/Rajasthan-Royals-logo.png",
+  DC:"https://1000logos.net/wp-content/uploads/2021/04/Delhi-Capitals-logo.png",
+  GT:"https://1000logos.net/wp-content/uploads/2022/02/Gujarat-Titans-logo.png",
+  LSG:"https://1000logos.net/wp-content/uploads/2022/02/Lucknow-Super-Giants-logo.png",
+  KKR:"https://1000logos.net/wp-content/uploads/2021/04/Kolkata-Knight-Riders-logo.png",
+  PBKS:"https://1000logos.net/wp-content/uploads/2021/04/Punjab-Kings-logo.png"
 };
 
 let table = JSON.parse(localStorage.getItem("table")) || teams.map(t => ({
@@ -108,7 +109,12 @@ function renderHistory(){
   const div = document.getElementById("history");
   div.innerHTML = "";
 
-  matches.forEach(m => {
+  if(matches.length === 0){
+    div.innerHTML = "<p>No matches yet</p>";
+    return;
+  }
+
+  matches.forEach((m,index)=>{
     const batFirstText = m.batFirst === "A" ? m.teamA : m.teamB;
 
     div.innerHTML += `
@@ -117,6 +123,8 @@ function renderHistory(){
         <b>${m.teamB}</b> ${m.rB}/${m.oversB}
         <br>
         <small>${batFirstText} batted first</small>
+        <br><br>
+        <button onclick="deleteMatch(${index})">Delete</button>
       </div>
     `;
   });
@@ -142,25 +150,20 @@ function addMatch(){
 
   A.played++; B.played++;
 
-  // chasing logic
   if (batFirst === "A" && rB < rA) bB = MAX_BALLS;
   if (batFirst === "B" && rA < rB) bA = MAX_BALLS;
 
-  // runs
   A.runsFor+=rA; A.runsAgainst+=rB;
   B.runsFor+=rB; B.runsAgainst+=rA;
 
-  // balls
   A.ballsFaced+=bA; A.ballsBowled+=bB;
   B.ballsFaced+=bB; B.ballsBowled+=bA;
 
-  // result
   if(rA>rB){ A.won++; A.points+=2; B.lost++; }
   else { B.won++; B.points+=2; A.lost++; }
 
   table.forEach(t=> t.nrr = calcNRR(t));
 
-  // save match
   matches.unshift({
     teamA, teamB, rA, rB,
     oversA: document.getElementById("oversA").value,
@@ -173,7 +176,51 @@ function addMatch(){
   render();
 }
 
-// dropdown
+function deleteMatch(index){
+  matches.splice(index,1);
+
+  table = teams.map(t => ({
+    team:t, played:0, won:0, lost:0, points:0,
+    runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
+  }));
+
+  const old = [...matches];
+  matches = [];
+
+  old.reverse().forEach(m => addMatchFromHistory(m));
+
+  localStorage.setItem("matches", JSON.stringify(matches));
+  render();
+}
+
+function addMatchFromHistory(m){
+  let {teamA, teamB, rA, rB, oversA, oversB, batFirst} = m;
+
+  let bA = oversToBalls(oversA);
+  let bB = oversToBalls(oversB);
+
+  let A = table.find(t=>t.team===teamA);
+  let B = table.find(t=>t.team===teamB);
+
+  A.played++; B.played++;
+
+  if (batFirst === "A" && rB < rA) bB = MAX_BALLS;
+  if (batFirst === "B" && rA < rB) bA = MAX_BALLS;
+
+  A.runsFor+=rA; A.runsAgainst+=rB;
+  B.runsFor+=rB; B.runsAgainst+=rA;
+
+  A.ballsFaced+=bA; A.ballsBowled+=bB;
+  B.ballsFaced+=bB; B.ballsBowled+=bA;
+
+  if(rA>rB){ A.won++; A.points+=2; B.lost++; }
+  else { B.won++; B.points+=2; A.lost++; }
+
+  table.forEach(t=> t.nrr = calcNRR(t));
+
+  matches.unshift(m);
+}
+
 teams.forEach(t=>{
   document.getElementById("teamA").innerHTML += `<option>${t}</option>`;
   document.getElementById("teamB").innerHTML += `<option>${t}</option>`;
