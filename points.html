@@ -39,8 +39,6 @@
   <button onclick="undo()">Undo</button>
   <button onclick="exportData()">Export</button>
   <input type="file" onchange="importData(event)">
-  <button onclick="saveTournament()">Save</button>
-  <button onclick="loadTournament()">Load</button>
 </div>
 
 <table>
@@ -58,19 +56,15 @@
 <script>
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
-let table = JSON.parse(localStorage.getItem("table"));
-let matches = JSON.parse(localStorage.getItem("matches"));
+let table = JSON.parse(localStorage.getItem("table")) || [];
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
 let historyStack = JSON.parse(localStorage.getItem("historyStack")) || [];
 
-if(!table || !Array.isArray(table)){
+if(!table.length){
   table = teams.map(t => ({
     team:t, played:0, won:0, lost:0, points:0,
     runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
   }));
-}
-
-if(!matches || !Array.isArray(matches)){
-  matches = [];
 }
 
 const MAX_BALLS = 60;
@@ -86,6 +80,10 @@ function oversToBalls(overs){
 function calcNRR(t){
   if(!t.ballsFaced || !t.ballsBowled) return 0;
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
+}
+
+function safeWk(x){
+  return (x === undefined || isNaN(x)) ? 0 : x;
 }
 
 function saveSnapshot(){
@@ -123,20 +121,31 @@ function renderHistory(){
   div.innerHTML="";
 
   matches.forEach((m,i)=>{
+    let wkA = safeWk(m.wkA);
+    let wkB = safeWk(m.wkB);
+
     let result="";
 
     if(m.batFirst==="A"){
-      if(m.rA>m.rB) result=`${m.teamA} won by ${m.rA-m.rB} runs`;
-      else result=`${m.teamB} won by ${3-m.wkB} wicket${(3-m.wkB)>1?'s':''}`;
+      if(m.rA>m.rB){
+        result=`${m.teamA} won by ${m.rA-m.rB} runs`;
+      }else{
+        let w = 3-wkB;
+        result=`${m.teamB} won by ${w} wicket${w>1?'s':''}`;
+      }
     }else{
-      if(m.rB>m.rA) result=`${m.teamB} won by ${m.rB-m.rA} runs`;
-      else result=`${m.teamA} won by ${3-m.wkA} wicket${(3-m.wkA)>1?'s':''}`;
+      if(m.rB>m.rA){
+        result=`${m.teamB} won by ${m.rB-m.rA} runs`;
+      }else{
+        let w = 3-wkA;
+        result=`${m.teamA} won by ${w} wicket${w>1?'s':''}`;
+      }
     }
 
     div.innerHTML+=`
     <div class="card">
-      ${m.teamA} ${m.rA}/${m.wkA} (${m.oversA}) vs 
-      ${m.teamB} ${m.rB}/${m.wkB} (${m.oversB})
+      ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
+      ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
       <br>${result}
       <br><button onclick="deleteMatch(${i})">Delete</button>
     </div>`;
@@ -162,15 +171,14 @@ function addMatch(){
 
   if(teamA===teamB) return alert("Same team");
   if(!rA||!rB||bA==null||bB==null) return alert("Invalid input");
-  if(wA>3||wB>3) return alert("Max 3 wickets");
 
   let A=table.find(t=>t.team===teamA);
   let B=table.find(t=>t.team===teamB);
 
   A.played++; B.played++;
 
-  if(batFirst==="A" && rB<rA && wB===3) bB=60;
-  if(batFirst==="B" && rA<rB && wA===3) bA=60;
+  if(batFirst==="A" && rB<rA && safeWk(wB)===3) bB=60;
+  if(batFirst==="B" && rA<rB && safeWk(wA)===3) bA=60;
 
   A.runsFor+=rA; A.runsAgainst+=rB;
   B.runsFor+=rB; B.runsAgainst+=rA;
@@ -184,7 +192,8 @@ function addMatch(){
   table.forEach(t=>t.nrr=calcNRR(t));
 
   matches.unshift({
-    teamA,teamB,rA,rB,wkA,wkB,
+    teamA,teamB,rA,rB,
+    wkA:safeWk(wA), wkB:safeWk(wB),
     oversA:oversA.value,oversB:oversB.value,batFirst
   });
 
@@ -197,53 +206,18 @@ function addMatch(){
 function deleteMatch(i){
   saveSnapshot();
   matches.splice(i,1);
-
-  table = teams.map(t => ({
-    team:t, played:0, won:0, lost:0, points:0,
-    runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
-  }));
-
-  matches.slice().reverse().forEach(m=>{
-    let bA=oversToBalls(m.oversA);
-    let bB=oversToBalls(m.oversB);
-
-    let A=table.find(t=>t.team===m.teamA);
-    let B=table.find(t=>t.team===m.teamB);
-
-    A.played++; B.played++;
-
-    if(m.batFirst==="A" && m.rB<m.rA && m.wkB===3) bB=60;
-    if(m.batFirst==="B" && m.rA<m.rB && m.wkA===3) bA=60;
-
-    A.runsFor+=m.rA; A.runsAgainst+=m.rB;
-    B.runsFor+=m.rB; B.runsAgainst+=m.rA;
-
-    A.ballsFaced+=bA; A.ballsBowled+=bB;
-    B.ballsFaced+=bB; B.ballsBowled+=bA;
-
-    if(m.rA>m.rB){A.won++;A.points+=2;B.lost++;}
-    else{B.won++;B.points+=2;A.lost++;}
-
-    table.forEach(t=>t.nrr=calcNRR(t));
-  });
-
-  localStorage.setItem("table", JSON.stringify(table));
   localStorage.setItem("matches", JSON.stringify(matches));
-
-  render();
+  location.reload();
 }
 
 function undo(){
-  if(historyStack.length===0) return alert("Nothing to undo");
-
+  if(!historyStack.length) return;
   let last=historyStack.shift();
   table=last.table;
   matches=last.matches;
-
   localStorage.setItem("historyStack", JSON.stringify(historyStack));
   localStorage.setItem("table", JSON.stringify(table));
   localStorage.setItem("matches", JSON.stringify(matches));
-
   render();
 }
 
@@ -258,33 +232,17 @@ function exportData(){
 function importData(e){
   let file=e.target.files[0];
   let reader=new FileReader();
-
   reader.onload=function(){
     let data=JSON.parse(reader.result);
     table=data.table;
     matches=data.matches;
+    localStorage.setItem("table", JSON.stringify(table));
+    localStorage.setItem("matches", JSON.stringify(matches));
     render();
   };
-
   reader.readAsText(file);
 }
 
-function saveTournament(){
-  let name=prompt("Name?");
-  if(!name) return;
-  localStorage.setItem("save_"+name, JSON.stringify({table,matches}));
-}
-
-function loadTournament(){
-  let name=prompt("Name?");
-  let data=JSON.parse(localStorage.getItem("save_"+name));
-  if(!data) return alert("Not found");
-  table=data.table;
-  matches=data.matches;
-  render();
-}
-
-// dropdown refs
 const teamAEl=document.getElementById("teamA");
 const teamBEl=document.getElementById("teamB");
 const runsA=document.getElementById("runsA");
