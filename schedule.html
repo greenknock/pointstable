@@ -104,12 +104,13 @@ const schedule = [
 ["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
 ];
 
+// get played matches
 let played = JSON.parse(localStorage.getItem("matches")) || [];
 
-function isPlayed(a,b){
+// 🔴 FIXED MATCH CHECK (ORDER MATTERS)
+function isMatchPlayed(team1, team2){
   return played.some(m =>
-    (m.teamA===a && m.teamB===b) ||
-    (m.teamA===b && m.teamB===a)
+    m.teamA === team1 && m.teamB === team2
   );
 }
 
@@ -122,7 +123,7 @@ schedule.forEach(week => {
 
   week.slice(1).forEach(match => {
 
-    const done = isPlayed(match[0], match[1]);
+    const done = isMatchPlayed(match[0], match[1]);
 
     const div = document.createElement("div");
     div.className = "match " + (done ? "completed" : "");
@@ -145,8 +146,9 @@ schedule.forEach(week => {
       </div>
     `;
 
+    // auto connect to points page
     div.onclick = () => {
-      window.location.href = `points.html?teamA=${match[0]}&teamB=${match[1]}`;
+      window.location.href = \`points.html?teamA=${match[0]}&teamB=${match[1]}\`;
     };
 
     container.appendChild(div);
