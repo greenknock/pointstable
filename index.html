@@ -8,6 +8,7 @@
     th, td { padding:10px; text-align:center; border-bottom:1px solid #334155; }
     .top4 { background:#14532d; }
     .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
+    .card { background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px; }
   </style>
 </head>
 <body>
@@ -23,6 +24,11 @@
   <input id="scoreB" placeholder="Runs B">
   <input id="oversB" placeholder="Overs B">
 
+  <select id="batFirst">
+    <option value="A">Team A Bats First</option>
+    <option value="B">Team B Bats First</option>
+  </select>
+
   <button onclick="addMatch()">Add Match</button>
 </div>
 
@@ -34,6 +40,9 @@
 </thead>
 <tbody id="tableBody"></tbody>
 </table>
+
+<h2>Match History</h2>
+<div id="history"></div>
 
 <script>
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
@@ -56,6 +65,10 @@ let table = JSON.parse(localStorage.getItem("table")) || teams.map(t => ({
   runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
 }));
 
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
+
+const MAX_BALLS = 60;
+
 const oversToBalls = (overs) => {
   let [o,b] = overs.split(".");
   o = parseInt(o)||0;
@@ -76,7 +89,7 @@ function render(){
   table.sort((a,b)=> b.points-a.points || b.nrr-a.nrr);
 
   table.forEach((t,i)=>{
-    const row = `
+    body.innerHTML += `
     <tr class="${i<4?'top4':''}">
       <td><img src="${logos[t.team]}" width="25"> ${t.team}</td>
       <td>${t.played}</td>
@@ -85,45 +98,82 @@ function render(){
       <td>${t.points}</td>
       <td>${t.nrr}</td>
     </tr>`;
-    body.innerHTML += row;
   });
 
   localStorage.setItem("table", JSON.stringify(table));
+  renderHistory();
+}
+
+function renderHistory(){
+  const div = document.getElementById("history");
+  div.innerHTML = "";
+
+  matches.forEach(m => {
+    const batFirstText = m.batFirst === "A" ? m.teamA : m.teamB;
+
+    div.innerHTML += `
+      <div class="card">
+        <b>${m.teamA}</b> ${m.rA}/${m.oversA} vs 
+        <b>${m.teamB}</b> ${m.rB}/${m.oversB}
+        <br>
+        <small>${batFirstText} batted first</small>
+      </div>
+    `;
+  });
 }
 
 function addMatch(){
   const teamA = document.getElementById("teamA").value;
   const teamB = document.getElementById("teamB").value;
+  const batFirst = document.getElementById("batFirst").value;
 
   const rA = parseInt(document.getElementById("scoreA").value);
   const rB = parseInt(document.getElementById("scoreB").value);
 
-  const bA = oversToBalls(document.getElementById("oversA").value);
-  const bB = oversToBalls(document.getElementById("oversB").value);
+  let bA = oversToBalls(document.getElementById("oversA").value);
+  let bB = oversToBalls(document.getElementById("oversB").value);
 
   if(teamA===teamB) return alert("Same team");
   if(!rA || !rB || bA==null || bB==null) return alert("Invalid input");
-  if(bA>60 || bB>60) return alert("Max 10 overs");
+  if(bA > MAX_BALLS || bB > MAX_BALLS) return alert("Max 10 overs");
 
   let A = table.find(t=>t.team===teamA);
   let B = table.find(t=>t.team===teamB);
 
   A.played++; B.played++;
 
+  // chasing logic
+  if (batFirst === "A" && rB < rA) bB = MAX_BALLS;
+  if (batFirst === "B" && rA < rB) bA = MAX_BALLS;
+
+  // runs
   A.runsFor+=rA; A.runsAgainst+=rB;
   B.runsFor+=rB; B.runsAgainst+=rA;
 
+  // balls
   A.ballsFaced+=bA; A.ballsBowled+=bB;
   B.ballsFaced+=bB; B.ballsBowled+=bA;
 
+  // result
   if(rA>rB){ A.won++; A.points+=2; B.lost++; }
   else { B.won++; B.points+=2; A.lost++; }
 
   table.forEach(t=> t.nrr = calcNRR(t));
 
+  // save match
+  matches.unshift({
+    teamA, teamB, rA, rB,
+    oversA: document.getElementById("oversA").value,
+    oversB: document.getElementById("oversB").value,
+    batFirst
+  });
+
+  localStorage.setItem("matches", JSON.stringify(matches));
+
   render();
 }
 
+// dropdown
 teams.forEach(t=>{
   document.getElementById("teamA").innerHTML += `<option>${t}</option>`;
   document.getElementById("teamB").innerHTML += `<option>${t}</option>`;
