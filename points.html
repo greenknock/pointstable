@@ -1,17 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Points Table Pro</title>
+  <title>Points Table</title>
+
   <style>
-    body { background:#0f172a; color:white; font-family:sans-serif; padding:20px; }
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { padding:10px; text-align:center; border-bottom:1px solid #334155; }
+    body { background:#020617; color:white; font-family:sans-serif; padding:20px; }
+
+    .input-box {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+
+    input, select {
+      padding:8px;
+      border-radius:6px;
+      border:none;
+    }
+
+    button {
+      padding:8px 12px;
+      background:#14532d;
+      color:white;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+    }
+
+    th, td {
+      padding:10px;
+      border-bottom:1px solid #334155;
+      text-align:center;
+    }
+
     .top4 { background:#14532d; }
-    .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
-    .card { background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px; }
-    button { padding:8px 12px; cursor:pointer; }
+
+    .card {
+      background:#1e293b;
+      padding:10px;
+      margin:10px 0;
+      border-radius:8px;
+    }
   </style>
 </head>
+
 <body>
 
 <h1>Points Table</h1>
@@ -35,12 +74,6 @@
   <button onclick="addMatch()">Add Match</button>
 </div>
 
-<div style="margin-bottom:15px;">
-  <button onclick="undo()">Undo</button>
-  <button onclick="exportData()">Export</button>
-  <input type="file" onchange="importData(event)">
-</div>
-
 <table>
 <thead>
 <tr>
@@ -58,7 +91,6 @@ const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
 let table = JSON.parse(localStorage.getItem("table")) || [];
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
-let historyStack = JSON.parse(localStorage.getItem("historyStack")) || [];
 
 if(!table.length){
   table = teams.map(t => ({
@@ -84,15 +116,6 @@ function calcNRR(t){
 
 function safeWk(x){
   return (x === undefined || isNaN(x)) ? 0 : x;
-}
-
-function saveSnapshot(){
-  historyStack.unshift({
-    table: JSON.parse(JSON.stringify(table)),
-    matches: JSON.parse(JSON.stringify(matches))
-  });
-  if(historyStack.length>10) historyStack.pop();
-  localStorage.setItem("historyStack", JSON.stringify(historyStack));
 }
 
 function render(){
@@ -147,14 +170,11 @@ function renderHistory(){
       ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
       ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
       <br>${result}
-      <br><button onclick="deleteMatch(${i})">Delete</button>
     </div>`;
   });
 }
 
 function addMatch(){
-  saveSnapshot();
-
   let teamA=teamAEl.value;
   let teamB=teamBEl.value;
 
@@ -203,46 +223,7 @@ function addMatch(){
   render();
 }
 
-function deleteMatch(i){
-  saveSnapshot();
-  matches.splice(i,1);
-  localStorage.setItem("matches", JSON.stringify(matches));
-  location.reload();
-}
-
-function undo(){
-  if(!historyStack.length) return;
-  let last=historyStack.shift();
-  table=last.table;
-  matches=last.matches;
-  localStorage.setItem("historyStack", JSON.stringify(historyStack));
-  localStorage.setItem("table", JSON.stringify(table));
-  localStorage.setItem("matches", JSON.stringify(matches));
-  render();
-}
-
-function exportData(){
-  let blob=new Blob([JSON.stringify({table,matches})]);
-  let a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="backup.json";
-  a.click();
-}
-
-function importData(e){
-  let file=e.target.files[0];
-  let reader=new FileReader();
-  reader.onload=function(){
-    let data=JSON.parse(reader.result);
-    table=data.table;
-    matches=data.matches;
-    localStorage.setItem("table", JSON.stringify(table));
-    localStorage.setItem("matches", JSON.stringify(matches));
-    render();
-  };
-  reader.readAsText(file);
-}
-
+// dropdown refs
 const teamAEl=document.getElementById("teamA");
 const teamBEl=document.getElementById("teamB");
 const runsA=document.getElementById("runsA");
@@ -257,6 +238,17 @@ teams.forEach(t=>{
   teamAEl.innerHTML+=`<option>${t}</option>`;
   teamBEl.innerHTML+=`<option>${t}</option>`;
 });
+
+
+// 🔴 AUTO-FILL FROM SCHEDULE
+const params = new URLSearchParams(window.location.search);
+const tA = params.get("teamA");
+const tB = params.get("teamB");
+
+if(tA && tB){
+  teamAEl.value = tA;
+  teamBEl.value = tB;
+}
 
 render();
 </script>
