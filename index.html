@@ -1,183 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Points Table</title>
+  <title>CricVault</title>
   <style>
-    body { background:#0f172a; color:white; font-family:sans-serif; padding:20px; }
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { padding:10px; text-align:center; border-bottom:1px solid #334155; }
-    .top4 { background:#14532d; }
-    .input-box { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
-    .card { background:#1e293b; padding:10px; margin-bottom:10px; border-radius:8px; }
+    body {
+      background:#0f172a;
+      color:white;
+      font-family:sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      flex-direction:column;
+      gap:20px;
+    }
+
+    h1 { font-size:40px; }
+
+    .btn {
+      padding:15px 30px;
+      background:#14532d;
+      border:none;
+      border-radius:10px;
+      color:white;
+      font-size:18px;
+      cursor:pointer;
+      width:250px;
+    }
+
+    .btn:hover {
+      background:#166534;
+    }
   </style>
 </head>
 <body>
 
-<h1>Points Table</h1>
+<h1>CricVault</h1>
 
-<div class="input-box">
-  <select id="teamA"></select>
-  <input id="runsA" placeholder="Runs A">
-  <input id="oversA" placeholder="Overs A (max 10)">
-  <input id="wkA" placeholder="Wk A (0-3)">
+<button class="btn" onclick="location.href='points.html'">
+  Points Table
+</button>
 
-  <select id="teamB"></select>
-  <input id="runsB" placeholder="Runs B">
-  <input id="oversB" placeholder="Overs B">
-  <input id="wkB" placeholder="Wk B (0-3)">
-
-  <select id="batFirst">
-    <option value="A">A Bats First</option>
-    <option value="B">B Bats First</option>
-  </select>
-
-  <button onclick="addMatch()">Add Match</button>
-</div>
-
-<table>
-<thead>
-<tr>
-<th>Team</th><th>P</th><th>W</th><th>L</th><th>Pts</th><th>NRR</th>
-</tr>
-</thead>
-<tbody id="tableBody"></tbody>
-</table>
-
-<h2>Match History</h2>
-<div id="history"></div>
-
-<script>
-const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
-
-let table = teams.map(t => ({
-  team:t, played:0, won:0, lost:0, points:0,
-  runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
-}));
-
-let matches = [];
-
-const MAX_BALLS = 60;
-
-function oversToBalls(overs){
-  let [o,b] = (overs||"").split(".");
-  o=parseInt(o)||0;
-  b=parseInt(b)||0;
-  if(b>=6) return null;
-  return o*6 + b;
-}
-
-function calcNRR(t){
-  if(!t.ballsFaced || !t.ballsBowled) return 0;
-  return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
-}
-
-function render(){
-  let body = document.getElementById("tableBody");
-  body.innerHTML="";
-
-  table.sort((a,b)=> b.points-a.points || b.nrr-a.nrr);
-
-  table.forEach((t,i)=>{
-    body.innerHTML += `
-    <tr class="${i<4?'top4':''}">
-      <td>${t.team}</td>
-      <td>${t.played}</td>
-      <td>${t.won}</td>
-      <td>${t.lost}</td>
-      <td>${t.points}</td>
-      <td>${t.nrr}</td>
-    </tr>`;
-  });
-
-  renderHistory();
-}
-
-function renderHistory(){
-  let div = document.getElementById("history");
-  div.innerHTML="";
-
-  matches.forEach(m=>{
-    let result="";
-
-    if(m.batFirst==="A"){
-      if(m.rA>m.rB){
-        result=`${m.teamA} won by ${m.rA-m.rB} runs`;
-      }else{
-        result=`${m.teamB} won by ${3-m.wkB} wickets`;
-      }
-    }else{
-      if(m.rB>m.rA){
-        result=`${m.teamB} won by ${m.rB-m.rA} runs`;
-      }else{
-        result=`${m.teamA} won by ${3-m.wkA} wickets`;
-      }
-    }
-
-    div.innerHTML+=`
-    <div class="card">
-      ${m.teamA} ${m.rA}/${m.wkA} (${m.oversA}) vs 
-      ${m.teamB} ${m.rB}/${m.wkB} (${m.oversB})
-      <br>${result}
-    </div>`;
-  });
-}
-
-function addMatch(){
-  let teamA=document.getElementById("teamA").value;
-  let teamB=document.getElementById("teamB").value;
-
-  let rA=parseInt(document.getElementById("runsA").value);
-  let rB=parseInt(document.getElementById("runsB").value);
-
-  let wA=parseInt(document.getElementById("wkA").value);
-  let wB=parseInt(document.getElementById("wkB").value);
-
-  let oA=document.getElementById("oversA").value;
-  let oB=document.getElementById("oversB").value;
-
-  let bA=oversToBalls(oA);
-  let bB=oversToBalls(oB);
-
-  let batFirst=document.getElementById("batFirst").value;
-
-  if(teamA===teamB) return alert("Same team");
-  if(!rA||!rB||bA==null||bB==null) return alert("Invalid input");
-  if(wA>3||wB>3) return alert("Max 3 wickets");
-  if(bA>60||bB>60) return alert("Max 10 overs");
-
-  let A=table.find(t=>t.team===teamA);
-  let B=table.find(t=>t.team===teamB);
-
-  A.played++; B.played++;
-
-  if(batFirst==="A" && rB<rA && wB===3) bB=60;
-  if(batFirst==="B" && rA<rB && wA===3) bA=60;
-
-  A.runsFor+=rA; A.runsAgainst+=rB;
-  B.runsFor+=rB; B.runsAgainst+=rA;
-
-  A.ballsFaced+=bA; A.ballsBowled+=bB;
-  B.ballsFaced+=bB; B.ballsBowled+=bA;
-
-  if(rA>rB){A.won++;A.points+=2;B.lost++;}
-  else{B.won++;B.points+=2;A.lost++;}
-
-  table.forEach(t=>t.nrr=calcNRR(t));
-
-  matches.unshift({
-    teamA,teamB,rA,rB,wkA:wA,wkB:wB,oversA:oA,oversB:oB,batFirst
-  });
-
-  render();
-}
-
-teams.forEach(t=>{
-  teamA.innerHTML+=`<option>${t}</option>`;
-  teamB.innerHTML+=`<option>${t}</option>`;
-});
-
-render();
-</script>
+<button class="btn" onclick="location.href='schedule.html'">
+  Match Schedule
+</button>
 
 </body>
 </html>
