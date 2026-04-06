@@ -2,17 +2,52 @@
 <html>
 <head>
   <title>Points Table</title>
+
   <style>
     body { background:#020617; color:white; font-family:sans-serif; padding:20px; }
-    .input-box { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
-    input, select { padding:8px; border-radius:6px; border:none; }
-    button { padding:8px 12px; background:#14532d; color:white; border:none; border-radius:6px; cursor:pointer; }
 
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { padding:10px; border-bottom:1px solid #334155; text-align:center; }
+    .input-box {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+
+    input, select {
+      padding:8px;
+      border-radius:6px;
+      border:none;
+    }
+
+    button {
+      padding:8px 12px;
+      background:#14532d;
+      color:white;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
+    }
+
+    th, td {
+      padding:10px;
+      border-bottom:1px solid #334155;
+      text-align:center;
+    }
+
     .top4 { background:#14532d; }
 
-    .card { background:#1e293b; padding:10px; margin:10px 0; border-radius:8px; }
+    .card {
+      background:#1e293b;
+      padding:10px;
+      margin:10px 0;
+      border-radius:8px;
+    }
   </style>
 </head>
 
@@ -64,6 +99,11 @@ if(!table.length){
   }));
 }
 
+// 🔴 SAFE WICKET FIX
+function safeWk(x){
+  return (x === undefined || isNaN(x)) ? 0 : x;
+}
+
 function oversToBalls(overs){
   let [o,b] = (overs||"").split(".");
   return (parseInt(o)||0)*6 + (parseInt(b)||0);
@@ -73,8 +113,6 @@ function calcNRR(t){
   if(!t.ballsFaced || !t.ballsBowled) return 0;
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
 }
-
-function safe(x){ return isNaN(x) ? 0 : x; }
 
 function render(){
   let body = document.getElementById("tableBody");
@@ -102,10 +140,24 @@ function renderHistory(){
   div.innerHTML="";
 
   matches.forEach(m=>{
+    let wkA = safeWk(m.wkA);
+    let wkB = safeWk(m.wkB);
+
+    let result = "";
+
+    if(m.rA > m.rB){
+      result = `${m.teamA} won by ${m.rA - m.rB} runs`;
+    } else {
+      let w = 3 - wkB;
+      result = `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
+    }
+
     div.innerHTML+=`
-      <div class="card">
-        ${m.teamA} ${m.rA}/${m.wkA} vs ${m.teamB} ${m.rB}/${m.wkB}
-      </div>`;
+    <div class="card">
+      ${m.teamA} ${m.rA}/${wkA} (${m.oversA||""}) vs 
+      ${m.teamB} ${m.rB}/${wkB} (${m.oversB||""})
+      <br>${result}
+    </div>`;
   });
 }
 
@@ -116,8 +168,8 @@ function addMatch(){
   let rA=parseInt(runsA.value);
   let rB=parseInt(runsB.value);
 
-  let wA=safe(parseInt(wkA.value));
-  let wB=safe(parseInt(wkB.value));
+  let wA=safeWk(parseInt(wkA.value));
+  let wB=safeWk(parseInt(wkB.value));
 
   let bA=oversToBalls(oversA.value);
   let bB=oversToBalls(oversB.value);
@@ -138,7 +190,12 @@ function addMatch(){
 
   table.forEach(t=>t.nrr=calcNRR(t));
 
-  matches.unshift({teamA,teamB,rA,rB,wkA:wA,wkB:wB});
+  matches.unshift({
+    teamA,teamB,rA,rB,
+    wkA:wA,wkB:wB,
+    oversA:oversA.value,
+    oversB:oversB.value
+  });
 
   localStorage.setItem("table", JSON.stringify(table));
   localStorage.setItem("matches", JSON.stringify(matches));
@@ -146,7 +203,7 @@ function addMatch(){
   render();
 }
 
-// dropdowns
+// dropdown refs
 const teamAEl=document.getElementById("teamA");
 const teamBEl=document.getElementById("teamB");
 const runsA=document.getElementById("runsA");
@@ -161,10 +218,15 @@ teams.forEach(t=>{
   teamBEl.innerHTML+=`<option>${t}</option>`;
 });
 
-// AUTO FILL
+// 🔴 AUTO-FILL FROM SCHEDULE
 const params = new URLSearchParams(window.location.search);
-if(params.get("teamA")) teamAEl.value=params.get("teamA");
-if(params.get("teamB")) teamBEl.value=params.get("teamB");
+const tA = params.get("teamA");
+const tB = params.get("teamB");
+
+if(tA && tB){
+  teamAEl.value = tA;
+  teamBEl.value = tB;
+}
 
 render();
 </script>
