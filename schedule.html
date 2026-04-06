@@ -1,54 +1,158 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Schedule</title>
+  <title>Match Schedule</title>
+
   <style>
-    body { background:#020617; color:white; font-family:sans-serif; padding:20px; }
-    .match { padding:10px; margin:10px 0; background:#1e293b; border-radius:10px; cursor:pointer; }
-    .done { background:#052e1f; border:1px solid #22c55e; }
+    body {
+      background:#020617;
+      color:white;
+      font-family:sans-serif;
+      padding:20px;
+    }
+
+    h1 { margin-bottom:20px; }
+    h2 { margin-top:30px; color:#22c55e; }
+
+    .match {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background:#1e293b;
+      padding:12px 20px;
+      border-radius:12px;
+      margin:10px 0;
+      transition:0.3s;
+      cursor:pointer;
+    }
+
+    .match:hover {
+      transform:scale(1.02);
+      background:#334155;
+    }
+
+    .match.completed {
+      background:#052e1f;
+      border:1px solid #22c55e;
+      cursor:not-allowed;
+      opacity:0.7;
+    }
+
+    .team {
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .team img {
+      width:30px;
+    }
+
+    .vs { opacity:0.6; }
+
+    .status {
+      font-size:12px;
+      padding:4px 10px;
+      border-radius:20px;
+    }
+
+    .done { background:#22c55e; color:black; }
+    .upcoming { background:#334155; }
+
+    button {
+      margin-bottom:20px;
+      padding:10px 15px;
+      background:#14532d;
+      color:white;
+      border:none;
+      border-radius:6px;
+      cursor:pointer;
+    }
   </style>
 </head>
+
 <body>
 
-<h1>Schedule</h1>
+<button onclick="location.href='index.html'">← Back</button>
+
+<h1>Match Schedule (League Stage)</h1>
 
 <script>
+const logos = {
+  CSK:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/csk.png",
+  MI:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/mi.png",
+  RCB:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rcb.png",
+  SRH:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/srh.png",
+  RR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rr.png",
+  DC:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/dc.png",
+  GT:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/gt.png",
+  LSG:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/lsg.png",
+  KKR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/kkr.png",
+  PBKS:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/pbks.png"
+};
+
 let played = JSON.parse(localStorage.getItem("matches")) || [];
 
-function getCount(a,b){
-  return played.filter(m =>
-    (m.teamA===a && m.teamB===b) ||
-    (m.teamA===b && m.teamB===a)
-  ).length;
+// 🔴 STRICT FIXTURE MATCH (NO REVERSE)
+function isPlayed(team1, team2){
+  return played.some(m =>
+    m.teamA === team1 && m.teamB === team2
+  );
 }
 
 const schedule = [
-["WEEK 1",["RCB","MI"],["PBKS","LSG"]],
-["WEEK 6",["MI","RCB"],["LSG","PBKS"]]
+["WEEK 1",["RCB","MI"],["PBKS","LSG"],["DC","GT"],["CSK","SRH"],["KKR","RR"]],
+["WEEK 2",["RCB","LSG"],["PBKS","GT"],["DC","SRH"],["CSK","RR"],["KKR","MI"]],
+["WEEK 3",["RCB","GT"],["PBKS","SRH"],["DC","RR"],["CSK","MI"],["KKR","LSG"]],
+["WEEK 4",["RCB","SRH"],["PBKS","RR"],["DC","MI"],["CSK","LSG"],["KKR","GT"]],
+["WEEK 5",["RCB","RR"],["PBKS","MI"],["DC","LSG"],["CSK","GT"],["KKR","SRH"]],
+["WEEK 6",["MI","RCB"],["LSG","PBKS"],["GT","DC"],["SRH","CSK"],["RR","KKR"]],
+["WEEK 7",["LSG","RCB"],["GT","PBKS"],["SRH","DC"],["RR","CSK"],["MI","KKR"]],
+["WEEK 8",["GT","RCB"],["SRH","PBKS"],["RR","DC"],["MI","CSK"],["LSG","KKR"]],
+["WEEK 9",["SRH","RCB"],["RR","PBKS"],["MI","DC"],["LSG","CSK"],["GT","KKR"]],
+["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
 ];
 
-schedule.forEach(week=>{
-  let h=document.createElement("h2");
-  h.innerText=week[0];
-  document.body.appendChild(h);
+const container = document.body;
 
-  let weekNum=parseInt(week[0].split(" ")[1]);
+schedule.forEach(week => {
+  const title = document.createElement("h2");
+  title.innerText = week[0];
+  container.appendChild(title);
 
-  week.slice(1).forEach(m=>{
-    let count=getCount(m[0],m[1]);
+  week.slice(1).forEach(match => {
 
-    let done = weekNum<=5 ? count>=1 : count>=2;
+    const done = isPlayed(match[0], match[1]);
 
-    let div=document.createElement("div");
-    div.className="match "+(done?"done":"");
+    const div = document.createElement("div");
+    div.className = "match " + (done ? "completed" : "");
 
-    div.innerText = `${m[0]} vs ${m[1]} ${done?"✔":""}`;
+    div.innerHTML = `
+      <div class="team">
+        <img src="${logos[match[0]]}">
+        ${match[0]}
+      </div>
 
-    div.onclick=()=>{
-      location.href=`points.html?teamA=${m[0]}&teamB=${m[1]}`;
-    };
+      <div class="vs">VS</div>
 
-    document.body.appendChild(div);
+      <div class="team">
+        ${match[1]}
+        <img src="${logos[match[1]]}">
+      </div>
+
+      <div class="status ${done ? 'done' : 'upcoming'}">
+        ${done ? 'Completed' : 'Upcoming'}
+      </div>
+    `;
+
+    // 🔴 LOCK SYSTEM
+    if(!done){
+      div.onclick = () => {
+        window.location.href = `points.html?teamA=${match[0]}&teamB=${match[1]}`;
+      };
+    }
+
+    container.appendChild(div);
   });
 });
 </script>
