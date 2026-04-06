@@ -2,52 +2,17 @@
 <html>
 <head>
   <title>Points Table</title>
-
   <style>
     body { background:#020617; color:white; font-family:sans-serif; padding:20px; }
+    .input-box { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+    input, select { padding:8px; border-radius:6px; border:none; }
+    button { padding:8px 12px; background:#14532d; color:white; border:none; border-radius:6px; cursor:pointer; }
 
-    .input-box {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-bottom:20px;
-    }
-
-    input, select {
-      padding:8px;
-      border-radius:6px;
-      border:none;
-    }
-
-    button {
-      padding:8px 12px;
-      background:#14532d;
-      color:white;
-      border:none;
-      border-radius:6px;
-      cursor:pointer;
-    }
-
-    table {
-      width:100%;
-      border-collapse:collapse;
-      margin-top:20px;
-    }
-
-    th, td {
-      padding:10px;
-      border-bottom:1px solid #334155;
-      text-align:center;
-    }
-
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { padding:10px; border-bottom:1px solid #334155; text-align:center; }
     .top4 { background:#14532d; }
 
-    .card {
-      background:#1e293b;
-      padding:10px;
-      margin:10px 0;
-      border-radius:8px;
-    }
+    .card { background:#1e293b; padding:10px; margin:10px 0; border-radius:8px; }
   </style>
 </head>
 
@@ -99,14 +64,9 @@ if(!table.length){
   }));
 }
 
-const MAX_BALLS = 60;
-
 function oversToBalls(overs){
   let [o,b] = (overs||"").split(".");
-  o=parseInt(o)||0;
-  b=parseInt(b)||0;
-  if(b>=6) return null;
-  return o*6 + b;
+  return (parseInt(o)||0)*6 + (parseInt(b)||0);
 }
 
 function calcNRR(t){
@@ -114,9 +74,7 @@ function calcNRR(t){
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
 }
 
-function safeWk(x){
-  return (x === undefined || isNaN(x)) ? 0 : x;
-}
+function safe(x){ return isNaN(x) ? 0 : x; }
 
 function render(){
   let body = document.getElementById("tableBody");
@@ -143,34 +101,11 @@ function renderHistory(){
   let div=document.getElementById("history");
   div.innerHTML="";
 
-  matches.forEach((m,i)=>{
-    let wkA = safeWk(m.wkA);
-    let wkB = safeWk(m.wkB);
-
-    let result="";
-
-    if(m.batFirst==="A"){
-      if(m.rA>m.rB){
-        result=`${m.teamA} won by ${m.rA-m.rB} runs`;
-      }else{
-        let w = 3-wkB;
-        result=`${m.teamB} won by ${w} wicket${w>1?'s':''}`;
-      }
-    }else{
-      if(m.rB>m.rA){
-        result=`${m.teamB} won by ${m.rB-m.rA} runs`;
-      }else{
-        let w = 3-wkA;
-        result=`${m.teamA} won by ${w} wicket${w>1?'s':''}`;
-      }
-    }
-
+  matches.forEach(m=>{
     div.innerHTML+=`
-    <div class="card">
-      ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
-      ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
-      <br>${result}
-    </div>`;
+      <div class="card">
+        ${m.teamA} ${m.rA}/${m.wkA} vs ${m.teamB} ${m.rB}/${m.wkB}
+      </div>`;
   });
 }
 
@@ -181,24 +116,16 @@ function addMatch(){
   let rA=parseInt(runsA.value);
   let rB=parseInt(runsB.value);
 
-  let wA=parseInt(wkA.value);
-  let wB=parseInt(wkB.value);
+  let wA=safe(parseInt(wkA.value));
+  let wB=safe(parseInt(wkB.value));
 
   let bA=oversToBalls(oversA.value);
   let bB=oversToBalls(oversB.value);
-
-  let batFirst=batFirstEl.value;
-
-  if(teamA===teamB) return alert("Same team");
-  if(!rA||!rB||bA==null||bB==null) return alert("Invalid input");
 
   let A=table.find(t=>t.team===teamA);
   let B=table.find(t=>t.team===teamB);
 
   A.played++; B.played++;
-
-  if(batFirst==="A" && rB<rA && safeWk(wB)===3) bB=60;
-  if(batFirst==="B" && rA<rB && safeWk(wA)===3) bA=60;
 
   A.runsFor+=rA; A.runsAgainst+=rB;
   B.runsFor+=rB; B.runsAgainst+=rA;
@@ -206,16 +133,12 @@ function addMatch(){
   A.ballsFaced+=bA; A.ballsBowled+=bB;
   B.ballsFaced+=bB; B.ballsBowled+=bA;
 
-  if(rA>rB){A.won++;A.points+=2;B.lost++;}
-  else{B.won++;B.points+=2;A.lost++;}
+  if(rA>rB){ A.won++; A.points+=2; B.lost++; }
+  else{ B.won++; B.points+=2; A.lost++; }
 
   table.forEach(t=>t.nrr=calcNRR(t));
 
-  matches.unshift({
-    teamA,teamB,rA,rB,
-    wkA:safeWk(wA), wkB:safeWk(wB),
-    oversA:oversA.value,oversB:oversB.value,batFirst
-  });
+  matches.unshift({teamA,teamB,rA,rB,wkA:wA,wkB:wB});
 
   localStorage.setItem("table", JSON.stringify(table));
   localStorage.setItem("matches", JSON.stringify(matches));
@@ -223,7 +146,7 @@ function addMatch(){
   render();
 }
 
-// dropdown refs
+// dropdowns
 const teamAEl=document.getElementById("teamA");
 const teamBEl=document.getElementById("teamB");
 const runsA=document.getElementById("runsA");
@@ -232,23 +155,16 @@ const wkA=document.getElementById("wkA");
 const wkB=document.getElementById("wkB");
 const oversA=document.getElementById("oversA");
 const oversB=document.getElementById("oversB");
-const batFirstEl=document.getElementById("batFirst");
 
 teams.forEach(t=>{
   teamAEl.innerHTML+=`<option>${t}</option>`;
   teamBEl.innerHTML+=`<option>${t}</option>`;
 });
 
-
-// 🔴 AUTO-FILL FROM SCHEDULE
+// AUTO FILL
 const params = new URLSearchParams(window.location.search);
-const tA = params.get("teamA");
-const tB = params.get("teamB");
-
-if(tA && tB){
-  teamAEl.value = tA;
-  teamBEl.value = tB;
-}
+if(params.get("teamA")) teamAEl.value=params.get("teamA");
+if(params.get("teamB")) teamBEl.value=params.get("teamB");
 
 render();
 </script>
