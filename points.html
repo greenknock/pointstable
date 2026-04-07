@@ -98,7 +98,7 @@ function resetTable(){
   }));
 }
 
-function safe(x){ return isNaN(x) ? 0 : x; }
+function safe(x){ return (x===undefined || isNaN(x)) ? 0 : x; }
 
 function oversToBalls(o){
   let [a,b]=(o||"").split(".");
@@ -116,6 +116,9 @@ function rebuildTable(){
   matches.forEach(m=>{
     let A = table.find(t=>t.team===m.teamA);
     let B = table.find(t=>t.team===m.teamB);
+
+    let wkA = safe(m.wkA);
+    let wkB = safe(m.wkB);
 
     A.played++; B.played++;
 
@@ -186,10 +189,13 @@ function renderHistory(){
   div.innerHTML="";
 
   matches.forEach((m,i)=>{
+    let wkA = safe(m.wkA);
+    let wkB = safe(m.wkB);
+
     div.innerHTML+=`
     <div class="card">
-      ${m.teamA} ${m.rA}/${m.wkA} (${m.oversA}) vs 
-      ${m.teamB} ${m.rB}/${m.wkB} (${m.oversB})
+      ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
+      ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
       <br>${getResult(m)}
       <br>
       <button onclick="editMatch(${i})">Edit</button>
@@ -199,13 +205,26 @@ function renderHistory(){
 }
 
 function addMatch(){
+  let wA = parseInt(wkA.value);
+  let wB = parseInt(wkB.value);
+
+  // 🔴 VALIDATION
+  if(isNaN(wA) || isNaN(wB)){
+    alert("Enter wickets for both teams");
+    return;
+  }
+  if(wA < 0 || wA > 3 || wB < 0 || wB > 3){
+    alert("Wickets must be between 0 and 3");
+    return;
+  }
+
   matches.unshift({
     teamA:teamA.value,
     teamB:teamB.value,
     rA:safe(parseInt(runsA.value)),
     rB:safe(parseInt(runsB.value)),
-    wkA:safe(parseInt(wkA.value)),
-    wkB:safe(parseInt(wkB.value)),
+    wkA:wA,
+    wkB:wB,
     oversA:oversA.value,
     oversB:oversB.value,
     batFirst:batFirst.value
@@ -228,8 +247,8 @@ function editMatch(i){
   teamB.value=m.teamB;
   runsA.value=m.rA;
   runsB.value=m.rB;
-  wkA.value=m.wkA;
-  wkB.value=m.wkB;
+  wkA.value=safe(m.wkA);
+  wkB.value=safe(m.wkB);
   oversA.value=m.oversA;
   oversB.value=m.oversB;
   batFirst.value=m.batFirst;
@@ -241,11 +260,27 @@ function editMatch(i){
 
 const teamA=document.getElementById("teamA");
 const teamB=document.getElementById("teamB");
+const runsA=document.getElementById("runsA");
+const runsB=document.getElementById("runsB");
+const wkA=document.getElementById("wkA");
+const wkB=document.getElementById("wkB");
+const oversA=document.getElementById("oversA");
+const oversB=document.getElementById("oversB");
+const batFirst=document.getElementById("batFirst");
 
 teams.forEach(t=>{
   teamA.innerHTML+=`<option>${t}</option>`;
   teamB.innerHTML+=`<option>${t}</option>`;
 });
+
+// 🔴 CLEAN OLD BROKEN DATA AUTOMATICALLY
+matches = matches.map(m => ({
+  ...m,
+  wkA: safe(m.wkA),
+  wkB: safe(m.wkB)
+}));
+
+localStorage.setItem("matches", JSON.stringify(matches));
 
 render();
 </script>
