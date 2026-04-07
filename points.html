@@ -99,7 +99,6 @@ if(!table.length){
   }));
 }
 
-// 🔴 SAFE WICKET FIX
 function safeWk(x){
   return (x === undefined || isNaN(x)) ? 0 : x;
 }
@@ -145,11 +144,26 @@ function renderHistory(){
 
     let result = "";
 
-    if(m.rA > m.rB){
-      result = `${m.teamA} won by ${m.rA - m.rB} runs`;
-    } else {
-      let w = 3 - wkB;
-      result = `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
+    if(m.rA === m.rB){
+      result = "Match tied";
+    }
+    else if(m.batFirst === "A"){
+      // A first → B chasing
+      if(m.rA > m.rB){
+        result = `${m.teamA} won by ${m.rA - m.rB} runs`;
+      } else {
+        let w = 3 - wkB;
+        result = `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
+      }
+    }
+    else {
+      // B first → A chasing
+      if(m.rB > m.rA){
+        result = `${m.teamB} won by ${m.rB - m.rA} runs`;
+      } else {
+        let w = 3 - wkA;
+        result = `${m.teamA} won by ${w} wicket${w>1?'s':''}`;
+      }
     }
 
     div.innerHTML+=`
@@ -174,6 +188,8 @@ function addMatch(){
   let bA=oversToBalls(oversA.value);
   let bB=oversToBalls(oversB.value);
 
+  let batFirst=document.getElementById("batFirst").value;
+
   let A=table.find(t=>t.team===teamA);
   let B=table.find(t=>t.team===teamB);
 
@@ -186,7 +202,7 @@ function addMatch(){
   B.ballsFaced+=bB; B.ballsBowled+=bA;
 
   if(rA>rB){ A.won++; A.points+=2; B.lost++; }
-  else{ B.won++; B.points+=2; A.lost++; }
+  else if(rB>rA){ B.won++; B.points+=2; A.lost++; }
 
   table.forEach(t=>t.nrr=calcNRR(t));
 
@@ -194,7 +210,8 @@ function addMatch(){
     teamA,teamB,rA,rB,
     wkA:wA,wkB:wB,
     oversA:oversA.value,
-    oversB:oversB.value
+    oversB:oversB.value,
+    batFirst
   });
 
   localStorage.setItem("table", JSON.stringify(table));
@@ -203,7 +220,6 @@ function addMatch(){
   render();
 }
 
-// dropdown refs
 const teamAEl=document.getElementById("teamA");
 const teamBEl=document.getElementById("teamB");
 const runsA=document.getElementById("runsA");
@@ -218,7 +234,6 @@ teams.forEach(t=>{
   teamBEl.innerHTML+=`<option>${t}</option>`;
 });
 
-// 🔴 AUTO-FILL FROM SCHEDULE
 const params = new URLSearchParams(window.location.search);
 const tA = params.get("teamA");
 const tB = params.get("teamB");
