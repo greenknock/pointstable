@@ -20,7 +20,7 @@
     }
 
     button {
-      padding:8px 12px;
+      padding:6px 10px;
       background:#14532d;
       color:white;
       border:none;
@@ -89,23 +89,20 @@
 <script>
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
-let table = JSON.parse(localStorage.getItem("table")) || [];
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
-if(!table.length){
-  table = teams.map(t => ({
+function resetTable(){
+  return teams.map(t => ({
     team:t, played:0, won:0, lost:0, points:0,
     runsFor:0, runsAgainst:0, ballsFaced:0, ballsBowled:0, nrr:0
   }));
 }
 
-function safeWk(x){
-  return (x === undefined || isNaN(x)) ? 0 : x;
-}
+function safe(x){ return isNaN(x) ? 0 : x; }
 
-function oversToBalls(overs){
-  let [o,b] = (overs||"").split(".");
-  return (parseInt(o)||0)*6 + (parseInt(b)||0);
+function oversToBalls(o){
+  let [a,b]=(o||"").split(".");
+  return (parseInt(a)||0)*6 + (parseInt(b)||0);
 }
 
 function calcNRR(t){
@@ -113,14 +110,64 @@ function calcNRR(t){
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
 }
 
+function rebuildTable(){
+  let table = resetTable();
+
+  matches.forEach(m=>{
+    let A = table.find(t=>t.team===m.teamA);
+    let B = table.find(t=>t.team===m.teamB);
+
+    A.played++; B.played++;
+
+    A.runsFor+=m.rA; A.runsAgainst+=m.rB;
+    B.runsFor+=m.rB; B.runsAgainst+=m.rA;
+
+    let bA=oversToBalls(m.oversA);
+    let bB=oversToBalls(m.oversB);
+
+    A.ballsFaced+=bA; A.ballsBowled+=bB;
+    B.ballsFaced+=bB; B.ballsBowled+=bA;
+
+    if(m.rA > m.rB){ A.won++; A.points+=2; B.lost++; }
+    else if(m.rB > m.rA){ B.won++; B.points+=2; A.lost++; }
+  });
+
+  table.forEach(t=>t.nrr=calcNRR(t));
+  return table.sort((a,b)=> b.points-a.points || b.nrr-a.nrr);
+}
+
+function getResult(m){
+  let wkA = safe(m.wkA);
+  let wkB = safe(m.wkB);
+  let totalWickets = 3;
+
+  if(m.rA === m.rB) return "Match tied";
+
+  if(m.batFirst === "A"){
+    if(m.rB > m.rA){
+      let w = totalWickets - wkB;
+      return `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
+    } else {
+      return `${m.teamA} won by ${m.rA - m.rB} runs`;
+    }
+  } else {
+    if(m.rA > m.rB){
+      let w = totalWickets - wkA;
+      return `${m.teamA} won by ${w} wicket${w>1?'s':''}`;
+    } else {
+      return `${m.teamB} won by ${m.rB - m.rA} runs`;
+    }
+  }
+}
+
 function render(){
-  let body = document.getElementById("tableBody");
+  let table = rebuildTable();
+
+  let body=document.getElementById("tableBody");
   body.innerHTML="";
 
-  table.sort((a,b)=> b.points-a.points || b.nrr-a.nrr);
-
   table.forEach((t,i)=>{
-    body.innerHTML += `
+    body.innerHTML+=`
     <tr class="${i<4?'top4':''}">
       <td>${t.team}</td>
       <td>${t.played}</td>
@@ -138,110 +185,67 @@ function renderHistory(){
   let div=document.getElementById("history");
   div.innerHTML="";
 
-  matches.forEach(m=>{
-    let wkA = safeWk(m.wkA);
-    let wkB = safeWk(m.wkB);
-
-    let result = "";
-
-    if(m.rA === m.rB){
-      result = "Match tied";
-    }
-    else if(m.batFirst === "A"){
-      // A first → B chasing
-      if(m.rA > m.rB){
-        result = `${m.teamA} won by ${m.rA - m.rB} runs`;
-      } else {
-        let w = 3 - wkB;
-        result = `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
-      }
-    }
-    else {
-      // B first → A chasing
-      if(m.rB > m.rA){
-        result = `${m.teamB} won by ${m.rB - m.rA} runs`;
-      } else {
-        let w = 3 - wkA;
-        result = `${m.teamA} won by ${w} wicket${w>1?'s':''}`;
-      }
-    }
-
+  matches.forEach((m,i)=>{
     div.innerHTML+=`
     <div class="card">
-      ${m.teamA} ${m.rA}/${wkA} (${m.oversA||""}) vs 
-      ${m.teamB} ${m.rB}/${wkB} (${m.oversB||""})
-      <br>${result}
+      ${m.teamA} ${m.rA}/${m.wkA} (${m.oversA}) vs 
+      ${m.teamB} ${m.rB}/${m.wkB} (${m.oversB})
+      <br>${getResult(m)}
+      <br>
+      <button onclick="editMatch(${i})">Edit</button>
+      <button onclick="deleteMatch(${i})">Delete</button>
     </div>`;
   });
 }
 
 function addMatch(){
-  let teamA=teamAEl.value;
-  let teamB=teamBEl.value;
-
-  let rA=parseInt(runsA.value);
-  let rB=parseInt(runsB.value);
-
-  let wA=safeWk(parseInt(wkA.value));
-  let wB=safeWk(parseInt(wkB.value));
-
-  let bA=oversToBalls(oversA.value);
-  let bB=oversToBalls(oversB.value);
-
-  let batFirst=document.getElementById("batFirst").value;
-
-  let A=table.find(t=>t.team===teamA);
-  let B=table.find(t=>t.team===teamB);
-
-  A.played++; B.played++;
-
-  A.runsFor+=rA; A.runsAgainst+=rB;
-  B.runsFor+=rB; B.runsAgainst+=rA;
-
-  A.ballsFaced+=bA; A.ballsBowled+=bB;
-  B.ballsFaced+=bB; B.ballsBowled+=bA;
-
-  if(rA>rB){ A.won++; A.points+=2; B.lost++; }
-  else if(rB>rA){ B.won++; B.points+=2; A.lost++; }
-
-  table.forEach(t=>t.nrr=calcNRR(t));
-
   matches.unshift({
-    teamA,teamB,rA,rB,
-    wkA:wA,wkB:wB,
+    teamA:teamA.value,
+    teamB:teamB.value,
+    rA:safe(parseInt(runsA.value)),
+    rB:safe(parseInt(runsB.value)),
+    wkA:safe(parseInt(wkA.value)),
+    wkB:safe(parseInt(wkB.value)),
     oversA:oversA.value,
     oversB:oversB.value,
-    batFirst
+    batFirst:batFirst.value
   });
 
-  localStorage.setItem("table", JSON.stringify(table));
   localStorage.setItem("matches", JSON.stringify(matches));
-
   render();
 }
 
-const teamAEl=document.getElementById("teamA");
-const teamBEl=document.getElementById("teamB");
-const runsA=document.getElementById("runsA");
-const runsB=document.getElementById("runsB");
-const wkA=document.getElementById("wkA");
-const wkB=document.getElementById("wkB");
-const oversA=document.getElementById("oversA");
-const oversB=document.getElementById("oversB");
+function deleteMatch(i){
+  matches.splice(i,1);
+  localStorage.setItem("matches", JSON.stringify(matches));
+  render();
+}
+
+function editMatch(i){
+  let m = matches[i];
+
+  teamA.value=m.teamA;
+  teamB.value=m.teamB;
+  runsA.value=m.rA;
+  runsB.value=m.rB;
+  wkA.value=m.wkA;
+  wkB.value=m.wkB;
+  oversA.value=m.oversA;
+  oversB.value=m.oversB;
+  batFirst.value=m.batFirst;
+
+  matches.splice(i,1);
+  localStorage.setItem("matches", JSON.stringify(matches));
+  render();
+}
+
+const teamA=document.getElementById("teamA");
+const teamB=document.getElementById("teamB");
 
 teams.forEach(t=>{
-  teamAEl.innerHTML+=`<option>${t}</option>`;
-  teamBEl.innerHTML+=`<option>${t}</option>`;
+  teamA.innerHTML+=`<option>${t}</option>`;
+  teamB.innerHTML+=`<option>${t}</option>`;
 });
-
-const params = new URLSearchParams(window.location.search);
-const tA = params.get("teamA");
-const tB = params.get("teamB");
-
-if(tA && tB){
-  teamAEl.value = tA;
-  teamBEl.value = tB;
-}
 
 render();
 </script>
