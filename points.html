@@ -4,49 +4,114 @@
   <title>Points Table</title>
 
   <style>
-    body { background:#020617; color:white; font-family:sans-serif; padding:20px; }
+    body {
+      background: linear-gradient(135deg,#020617,#0f172a);
+      color:white;
+      font-family:'Segoe UI',sans-serif;
+      padding:20px;
+    }
+
+    h1, h2 {
+      letter-spacing:1px;
+    }
 
     .input-box {
       display:flex;
       gap:10px;
       flex-wrap:wrap;
-      margin-bottom:20px;
+      margin-bottom:25px;
+      background: rgba(255,255,255,0.05);
+      padding:15px;
+      border-radius:12px;
+      backdrop-filter: blur(10px);
     }
 
     input, select {
-      padding:8px;
-      border-radius:6px;
+      padding:10px;
+      border-radius:8px;
       border:none;
+      background:#0f172a;
+      color:white;
+      outline:none;
     }
 
     button {
-      padding:6px 10px;
-      background:#14532d;
+      padding:8px 14px;
+      background: linear-gradient(135deg,#22c55e,#15803d);
       color:white;
       border:none;
-      border-radius:6px;
+      border-radius:8px;
       cursor:pointer;
+      transition:0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow:0 0 10px #22c55e;
     }
 
     table {
       width:100%;
       border-collapse:collapse;
       margin-top:20px;
+      border-radius:12px;
+      overflow:hidden;
     }
 
-    th, td {
-      padding:10px;
-      border-bottom:1px solid #334155;
+    th {
+      background: rgba(255,255,255,0.08);
+      padding:12px;
+      font-weight:600;
+    }
+
+    td {
+      padding:12px;
       text-align:center;
     }
 
-    .top4 { background:#14532d; }
+    tbody tr {
+      transition:0.2s;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,0.05);
+      transform: scale(1.01);
+    }
+
+    .top4 {
+      background: linear-gradient(90deg,#14532d,#166534);
+      box-shadow:0 0 12px rgba(34,197,94,0.4);
+    }
 
     .card {
+      background: rgba(255,255,255,0.05);
+      padding:15px;
+      margin:12px 0;
+      border-radius:12px;
+      backdrop-filter: blur(10px);
+      transition:0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+      box-shadow:0 0 15px rgba(34,197,94,0.3);
+    }
+
+    .result {
+      color:#22c55e;
+      font-weight:600;
+      margin-top:5px;
+    }
+
+    .card button {
+      margin-top:8px;
+      margin-right:6px;
       background:#1e293b;
-      padding:10px;
-      margin:10px 0;
-      border-radius:8px;
+    }
+
+    .card button:hover {
+      background:#22c55e;
+      color:black;
     }
   </style>
 </head>
@@ -116,9 +181,6 @@ function rebuildTable(){
   matches.forEach(m=>{
     let A = table.find(t=>t.team===m.teamA);
     let B = table.find(t=>t.team===m.teamB);
-
-    let wkA = safe(m.wkA);
-    let wkB = safe(m.wkB);
 
     A.played++; B.played++;
 
@@ -196,8 +258,7 @@ function renderHistory(){
     <div class="card">
       ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
       ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
-      <br>${getResult(m)}
-      <br>
+      <div class="result">${getResult(m)}</div>
       <button onclick="editMatch(${i})">Edit</button>
       <button onclick="deleteMatch(${i})">Delete</button>
     </div>`;
@@ -208,13 +269,8 @@ function addMatch(){
   let wA = parseInt(wkA.value);
   let wB = parseInt(wkB.value);
 
-  // 🔴 VALIDATION
   if(isNaN(wA) || isNaN(wB)){
-    alert("Enter wickets for both teams");
-    return;
-  }
-  if(wA < 0 || wA > 3 || wB < 0 || wB > 3){
-    alert("Wickets must be between 0 and 3");
+    alert("Enter wickets");
     return;
   }
 
@@ -272,15 +328,6 @@ teams.forEach(t=>{
   teamA.innerHTML+=`<option>${t}</option>`;
   teamB.innerHTML+=`<option>${t}</option>`;
 });
-
-// 🔴 CLEAN OLD BROKEN DATA AUTOMATICALLY
-matches = matches.map(m => ({
-  ...m,
-  wkA: safe(m.wkA),
-  wkB: safe(m.wkB)
-}));
-
-localStorage.setItem("matches", JSON.stringify(matches));
 
 render();
 </script>
