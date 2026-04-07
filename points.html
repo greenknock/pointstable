@@ -19,7 +19,6 @@
       background: rgba(255,255,255,0.05);
       padding:15px;
       border-radius:12px;
-      backdrop-filter: blur(10px);
     }
 
     input, select {
@@ -28,89 +27,58 @@
       border:none;
       background:#0f172a;
       color:white;
-      outline:none;
     }
 
     button {
       padding:8px 14px;
-      background: linear-gradient(135deg,#22c55e,#15803d);
-      color:white;
+      background:#22c55e;
       border:none;
       border-radius:8px;
       cursor:pointer;
-      transition:0.2s;
-    }
-
-    button:hover {
-      transform: scale(1.05);
-      box-shadow:0 0 10px #22c55e;
     }
 
     table {
       width:100%;
       border-collapse:collapse;
       margin-top:20px;
-      border-radius:12px;
-      overflow:hidden;
     }
 
-    th {
-      background: rgba(255,255,255,0.08);
-      padding:12px;
-      font-weight:600;
-    }
-
-    td {
+    th, td {
       padding:12px;
       text-align:center;
     }
 
-    tbody tr:hover {
-      background: rgba(255,255,255,0.05);
-      transform: scale(1.01);
+    .top4 {
+      background:#14532d;
     }
 
-    .top4 {
-      background: linear-gradient(90deg,#14532d,#166534);
-      box-shadow:0 0 12px rgba(34,197,94,0.4);
+    .team-cell {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      justify-content:flex-start;
+      padding-left:15px;
+    }
+
+    .team-logo {
+      width:28px;
+      height:28px;
+      object-fit:contain;
+      border-radius:50%;
+      background:#020617;
+      padding:2px;
     }
 
     .card {
-      background: rgba(255,255,255,0.05);
-      padding:15px;
-      margin:12px 0;
-      border-radius:12px;
-      backdrop-filter: blur(10px);
-      transition:0.2s;
-    }
-
-    .card:hover {
-      transform: scale(1.02);
-      box-shadow:0 0 15px rgba(34,197,94,0.3);
+      background:#1e293b;
+      padding:12px;
+      margin:10px 0;
+      border-radius:10px;
     }
 
     .result {
       color:#22c55e;
-      font-weight:600;
-      margin-top:5px;
-    }
-
-    .card button {
-      margin-top:8px;
-      margin-right:6px;
-      background:#1e293b;
-    }
-
-    .card button:hover {
-      background:#22c55e;
-      color:black;
-    }
-
-    .nrr-animate {
-      color:#22c55e;
       font-weight:bold;
-      transform:scale(1.2);
-      transition:0.3s;
     }
   </style>
 </head>
@@ -154,19 +122,18 @@
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
 const teamLogos = {
-  CSK:"https://i.imgur.com/6o5V7Xk.png",
-  MI:"https://i.imgur.com/2yAfWib.png",
-  RCB:"https://i.imgur.com/8kQZ4vN.png",
-  SRH:"https://i.imgur.com/Wr7YJ9Y.png",
-  RR:"https://i.imgur.com/Q9bXK4p.png",
-  DC:"https://i.imgur.com/5c7Q9bS.png",
-  GT:"https://i.imgur.com/Vc9XzKp.png",
-  LSG:"https://i.imgur.com/3hZk7Yp.png",
-  KKR:"https://i.imgur.com/t7X9pK2.png",
-  PBKS:"https://i.imgur.com/Nz7pYxK.png"
+  CSK:"https://upload.wikimedia.org/wikipedia/en/2/2e/Chennai_Super_Kings_Logo.svg",
+  MI:"https://upload.wikimedia.org/wikipedia/en/c/cd/Mumbai_Indians_Logo.svg",
+  RCB:"https://upload.wikimedia.org/wikipedia/en/4/4f/Royal_Challengers_Bangalore_Logo.svg",
+  SRH:"https://upload.wikimedia.org/wikipedia/en/8/81/Sunrisers_Hyderabad.svg",
+  RR:"https://upload.wikimedia.org/wikipedia/en/6/60/Rajasthan_Royals_Logo.svg",
+  DC:"https://upload.wikimedia.org/wikipedia/en/2/2f/Delhi_Capitals.svg",
+  GT:"https://upload.wikimedia.org/wikipedia/en/0/09/Gujarat_Titans_Logo.svg",
+  LSG:"https://upload.wikimedia.org/wikipedia/en/7/75/Lucknow_Super_Giants_IPL_Logo.svg",
+  KKR:"https://upload.wikimedia.org/wikipedia/en/4/4c/Kolkata_Knight_Riders_Logo.svg",
+  PBKS:"https://upload.wikimedia.org/wikipedia/en/d/d4/Punjab_Kings_Logo.svg"
 };
 
-let prevNRR = {};
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
 
 function resetTable(){
@@ -183,6 +150,12 @@ function oversToBalls(o){
   return (parseInt(a)||0)*6 + (parseInt(b)||0);
 }
 
+// 🔴 FIXED NRR LOGIC
+function getBalls(balls, wickets){
+  if(wickets === 3) return 60; // all out → full overs
+  return balls;
+}
+
 function calcNRR(t){
   if(!t.ballsFaced || !t.ballsBowled) return 0;
   return ((t.runsFor/(t.ballsFaced/6)) - (t.runsAgainst/(t.ballsBowled/6))).toFixed(2);
@@ -195,13 +168,16 @@ function rebuildTable(){
     let A = table.find(t=>t.team===m.teamA);
     let B = table.find(t=>t.team===m.teamB);
 
+    let wkA = safe(m.wkA);
+    let wkB = safe(m.wkB);
+
+    let bA = getBalls(oversToBalls(m.oversA), wkA);
+    let bB = getBalls(oversToBalls(m.oversB), wkB);
+
     A.played++; B.played++;
 
     A.runsFor+=m.rA; A.runsAgainst+=m.rB;
     B.runsFor+=m.rB; B.runsAgainst+=m.rA;
-
-    let bA=oversToBalls(m.oversA);
-    let bB=oversToBalls(m.oversB);
 
     A.ballsFaced+=bA; A.ballsBowled+=bB;
     B.ballsFaced+=bB; B.ballsBowled+=bA;
@@ -246,31 +222,18 @@ function render(){
   table.forEach((t,i)=>{
     body.innerHTML+=`
     <tr class="${i<4?'top4':''}">
-      <td style="display:flex;align-items:center;gap:10px;justify-content:center;">
-        <img src="${teamLogos[t.team]}" width="26">
+      <td class="team-cell">
+        <img src="${teamLogos[t.team]}" class="team-logo"
+         onerror="this.src='https://via.placeholder.com/28?text=${t.team[0]}'">
         ${i===0 ? "👑 " : ""}${t.team}
       </td>
       <td>${t.played}</td>
       <td>${t.won}</td>
       <td>${t.lost}</td>
       <td>${t.points}</td>
-      <td class="nrr" data-team="${t.team}">${t.nrr}</td>
+      <td>${t.nrr}</td>
     </tr>`;
   });
-
-  setTimeout(()=>{
-    document.querySelectorAll(".nrr").forEach(el=>{
-      let team = el.dataset.team;
-      let current = parseFloat(el.innerText);
-
-      if(prevNRR[team] !== undefined && prevNRR[team] !== current){
-        el.classList.add("nrr-animate");
-        setTimeout(()=>el.classList.remove("nrr-animate"),500);
-      }
-
-      prevNRR[team] = current;
-    });
-  },50);
 
   renderHistory();
 }
