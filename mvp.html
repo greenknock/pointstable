@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>MVP List</title>
+  <title>MVP Calculator</title>
 
   <style>
     body {
@@ -67,7 +67,7 @@
 
 <script>
 
-// ✅ YOUR PLAYERS
+// ✅ PLAYERS
 const players = [
   "Shimron Hetmyer","Yashasvi Jaiswal","Vaibhav Sooryavanshi",
   "Manish Pandey","Cameron Green","Finn Allen","Mitchell Marsh",
@@ -85,10 +85,10 @@ players.forEach(p=>{
   playerSelect.innerHTML += `<option>${p}</option>`;
 });
 
-// ✅ DATA STORAGE (PLAYER-WISE)
-let data = {};
+// ✅ LOAD FROM STORAGE
+let data = JSON.parse(localStorage.getItem("mvpData")) || {};
 
-// ✅ POINT CALCULATION (PER MATCH ONLY)
+// ✅ POINT SYSTEM
 function calculatePoints(runs, sr){
   let points = runs;
 
@@ -100,7 +100,7 @@ function calculatePoints(runs, sr){
   return points;
 }
 
-// ✅ ADD PLAYER MATCH
+// ✅ ADD PLAYER
 function addPlayer(){
   let name = playerSelect.value;
   let runs = parseInt(document.getElementById("runs").value);
@@ -117,7 +117,7 @@ function addPlayer(){
     data[name].matches += 1;
     data[name].runs += runs;
     data[name].totalSR += sr;
-    data[name].points += matchPoints; // ✅ sum, not recalc
+    data[name].points += matchPoints;
   } else {
     data[name] = {
       matches: 1,
@@ -127,10 +127,16 @@ function addPlayer(){
     };
   }
 
+  saveData();
   render();
 }
 
-// ✅ RENDER LEADERBOARD
+// ✅ SAVE TO STORAGE
+function saveData(){
+  localStorage.setItem("mvpData", JSON.stringify(data));
+}
+
+// ✅ RENDER
 function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
@@ -139,7 +145,6 @@ function render(){
 
   for(let name in data){
     let p = data[name];
-
     let avgSR = p.totalSR / p.matches;
 
     arr.push({
@@ -166,11 +171,15 @@ function render(){
   });
 }
 
-// ✅ RESET FUNCTION
+// ✅ RESET
 function resetMVP(){
   data = {};
+  localStorage.removeItem("mvpData");
   render();
 }
+
+// ✅ LOAD ON PAGE OPEN
+render();
 
 </script>
 
