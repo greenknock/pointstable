@@ -1,121 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>MVP List</title>
-
-  <style>
-    body {
-      background: linear-gradient(135deg,#020617,#0f172a);
-      color:white;
-      font-family:'Segoe UI',sans-serif;
-      padding:20px;
-    }
-
-    h1 {
-      margin-bottom:20px;
-    }
-
-    .input-box {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-bottom:20px;
-      background: rgba(255,255,255,0.05);
-      padding:15px;
-      border-radius:12px;
-    }
-
-    input, select {
-      padding:10px;
-      border-radius:8px;
-      border:none;
-      background:#0f172a;
-      color:white;
-    }
-
-    button {
-      padding:8px 14px;
-      background:#22c55e;
-      border:none;
-      border-radius:8px;
-      cursor:pointer;
-    }
-
-    .card {
-      background:#1e293b;
-      padding:12px;
-      margin:10px 0;
-      border-radius:10px;
-    }
-
-    .top {
-      color:#22c55e;
-      font-weight:bold;
-    }
-  </style>
-</head>
-
-<body>
-
-<h1>MVP Calculator</h1>
-
-<div class="input-box">
-  <select id="player"></select>
-  <input id="runs" placeholder="Runs">
-  <input id="sr" placeholder="Strike Rate">
-  <button onclick="addPlayer()">Add Player</button>
-</div>
-
-<div id="mvpList"></div>
-
-<script>
-
-// ✅ YOUR PLAYERS LIST
-const players = [
-  "Shimron Hetmyer",
-  "Yashasvi Jaiswal",
-  "Vaibhav Sooryavanshi",
-  "Manish Pandey",
-  "Cameron Green",
-  "Finn Allen",
-  "Mitchell Marsh",
-  "Ayush Badoni",
-  "Aiden Markram",
-  "Ryan Rickelton",
-  "Hardik Pandya",
-  "Rohit Sharma",
-  "Glenn Phillips",
-  "Jos Buttler",
-  "Tristan Stubbs",
-  "Nitish Rana",
-  "KL Rahul",
-  "Travis Head",
-  "Abhishek Sharma",
-  "Ishan Kishan",
-  "Shubman Gill",
-  "Marco Jansen",
-  "Marcus Stoinis",
-  "Shreyas Iyer",
-  "Rajat Patidar",
-  "Phil Salt",
-  "MS Dhoni",
-  "Virat Kohli",
-  "Ruturaj Gaikwad",
-  "Sanju Samson"
-];
-
-const playerSelect = document.getElementById("player");
-
-players.forEach(p=>{
-  playerSelect.innerHTML += `<option>${p}</option>`;
-});
-
-let data = [];
+let data = {};
 
 function calculatePoints(runs, sr){
-  runs = parseInt(runs) || 0;
-  sr = parseFloat(sr) || 0;
-
   let points = runs;
 
   if(sr < 100) points -= 2;
@@ -127,18 +12,32 @@ function calculatePoints(runs, sr){
 }
 
 function addPlayer(){
-  let name = playerSelect.value;
-  let runs = document.getElementById("runs").value;
-  let sr = document.getElementById("sr").value;
+  let name = document.getElementById("player").value;
+  let runs = parseInt(document.getElementById("runs").value);
+  let sr = parseFloat(document.getElementById("sr").value);
 
   if(!runs || !sr){
     alert("Enter runs and strike rate");
     return;
   }
 
-  let pts = calculatePoints(runs, sr);
+  let matchPoints = calculatePoints(runs, sr);
 
-  data.push({name, runs, sr, pts});
+  // ✅ aggregate
+  if(data[name]){
+    data[name].matches += 1;
+    data[name].runs += runs;
+    data[name].totalSR += sr;
+    data[name].points += matchPoints;   // 🔥 sum points (NOT recalculated)
+  } else {
+    data[name] = {
+      matches: 1,
+      runs: runs,
+      totalSR: sr,
+      points: matchPoints
+    };
+  }
+
   render();
 }
 
@@ -146,21 +45,32 @@ function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
 
-  data.sort((a,b)=> b.pts - a.pts);
+  let arr = [];
 
-  data.forEach((p,i)=>{
+  for(let name in data){
+    let p = data[name];
+
+    let avgSR = p.totalSR / p.matches;
+
+    arr.push({
+      name,
+      matches: p.matches,
+      runs: p.runs,
+      sr: avgSR.toFixed(1),
+      pts: p.points   // ✅ already summed
+    });
+  }
+
+  // sort by points
+  arr.sort((a,b)=> b.pts - a.pts);
+
+  arr.forEach((p,i)=>{
     div.innerHTML += `
     <div class="card">
-      <div class="${i===0 ? "top" : ""}">
-        ${i===0 ? "🏆 " : ""}${p.name}
-      </div>
-      Runs: ${p.runs} | SR: ${p.sr}<br>
+      ${i===0 ? "🏆 " : ""}<b>${p.name}</b><br>
+      Matches: ${p.matches} | Runs: ${p.runs}<br>
+      Avg SR: ${p.sr}<br>
       Points: ${p.pts}
     </div>`;
   });
 }
-
-</script>
-
-</body>
-</html>
