@@ -30,11 +30,16 @@
     }
 
     button {
-      padding:8px 14px;
+      padding:6px 12px;
       background:#22c55e;
       border:none;
       border-radius:8px;
       cursor:pointer;
+    }
+
+    .delete-btn {
+      background:#ef4444;
+      margin-top:6px;
     }
 
     .card {
@@ -67,6 +72,7 @@
 
 <script>
 
+// PLAYERS
 const players = [
   "Shimron Hetmyer","Yashasvi Jaiswal","Vaibhav Sooryavanshi",
   "Manish Pandey","Cameron Green","Finn Allen","Mitchell Marsh",
@@ -84,16 +90,15 @@ players.forEach(p=>{
   playerSelect.innerHTML += `<option>${p}</option>`;
 });
 
+// LOAD DATA
 let data = JSON.parse(localStorage.getItem("mvpData")) || {};
 
-// ✅ UPDATED POINT LOGIC
+// POINT LOGIC
 function calculatePoints(runs, sr){
   let points = runs;
 
-  // 🔴 duck penalty
   if(runs === 0) points -= 1;
 
-  // 🔴 SR zero penalty
   if(sr === 0) points -= 3;
   else if(sr < 100) points -= 2;
   else if(sr >= 300) points += 5;
@@ -103,6 +108,7 @@ function calculatePoints(runs, sr){
   return points;
 }
 
+// ADD PLAYER
 function addPlayer(){
   let name = playerSelect.value;
   let runs = parseInt(document.getElementById("runs").value);
@@ -133,10 +139,19 @@ function addPlayer(){
   render();
 }
 
+// SAVE
 function saveData(){
   localStorage.setItem("mvpData", JSON.stringify(data));
 }
 
+// DELETE PLAYER
+function deletePlayer(name){
+  delete data[name];
+  saveData();
+  render();
+}
+
+// RENDER
 function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
@@ -162,21 +177,27 @@ function render(){
     div.innerHTML += `
     <div class="card">
       <div class="${i===0 ? "top" : ""}">
-        ${i===0 ? "🏆 " : ""}${p.name}
+        ${i+1}. ${i===0 ? "🏆 " : ""}${p.name}
       </div>
       Matches: ${p.matches} | Runs: ${p.runs}<br>
       Avg SR: ${p.sr}<br>
-      Points: ${p.pts}
+      Points: ${p.pts}<br>
+
+      <button class="delete-btn" onclick="deletePlayer('${p.name}')">
+        Delete
+      </button>
     </div>`;
   });
 }
 
+// RESET
 function resetMVP(){
   data = {};
   localStorage.removeItem("mvpData");
   render();
 }
 
+// LOAD
 render();
 
 </script>
