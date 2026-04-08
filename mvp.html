@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>MVP Calculator</title>
+  <title>MVP List</title>
 
   <style>
     body {
@@ -67,7 +67,6 @@
 
 <script>
 
-// ✅ PLAYERS
 const players = [
   "Shimron Hetmyer","Yashasvi Jaiswal","Vaibhav Sooryavanshi",
   "Manish Pandey","Cameron Green","Finn Allen","Mitchell Marsh",
@@ -76,7 +75,7 @@ const players = [
   "Nitish Rana","KL Rahul","Travis Head","Abhishek Sharma",
   "Ishan Kishan","Shubman Gill","Marco Jansen","Marcus Stoinis",
   "Shreyas Iyer","Rajat Patidar","Phil Salt","MS Dhoni",
-  "Virat Kohli","Ruturaj Gaikwad","Sanju Samson","David Miller"
+  "Virat Kohli","Ruturaj Gaikwad","Sanju Samson"
 ];
 
 const playerSelect = document.getElementById("player");
@@ -85,14 +84,18 @@ players.forEach(p=>{
   playerSelect.innerHTML += `<option>${p}</option>`;
 });
 
-// ✅ LOAD FROM STORAGE
 let data = JSON.parse(localStorage.getItem("mvpData")) || {};
 
-// ✅ POINT SYSTEM
+// ✅ UPDATED POINT LOGIC
 function calculatePoints(runs, sr){
   let points = runs;
 
-  if(sr < 100) points -= 2;
+  // 🔴 duck penalty
+  if(runs === 0) points -= 1;
+
+  // 🔴 SR zero penalty
+  if(sr === 0) points -= 3;
+  else if(sr < 100) points -= 2;
   else if(sr >= 300) points += 5;
   else if(sr >= 200) points += 3;
   else if(sr >= 100) points += 1;
@@ -100,13 +103,12 @@ function calculatePoints(runs, sr){
   return points;
 }
 
-// ✅ ADD PLAYER
 function addPlayer(){
   let name = playerSelect.value;
   let runs = parseInt(document.getElementById("runs").value);
   let sr = parseFloat(document.getElementById("sr").value);
 
-  if(!runs || !sr){
+  if(!runs && runs !== 0 || !sr && sr !== 0){
     alert("Enter runs and strike rate");
     return;
   }
@@ -131,12 +133,10 @@ function addPlayer(){
   render();
 }
 
-// ✅ SAVE TO STORAGE
 function saveData(){
   localStorage.setItem("mvpData", JSON.stringify(data));
 }
 
-// ✅ RENDER
 function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
@@ -171,14 +171,12 @@ function render(){
   });
 }
 
-// ✅ RESET
 function resetMVP(){
   data = {};
   localStorage.removeItem("mvpData");
   render();
 }
 
-// ✅ LOAD ON PAGE OPEN
 render();
 
 </script>
