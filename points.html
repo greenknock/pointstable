@@ -66,7 +66,6 @@
       object-fit:contain;
       border-radius:50%;
       background:#020617;
-      padding:2px;
     }
 
     .card {
@@ -121,17 +120,18 @@
 <script>
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
+// ✅ LOCAL LOGOS
 const teamLogos = {
-  CSK:"https://upload.wikimedia.org/wikipedia/en/2/2e/Chennai_Super_Kings_Logo.svg",
-  MI:"https://upload.wikimedia.org/wikipedia/en/c/cd/Mumbai_Indians_Logo.svg",
-  RCB:"https://upload.wikimedia.org/wikipedia/en/4/4f/Royal_Challengers_Bangalore_Logo.svg",
-  SRH:"https://upload.wikimedia.org/wikipedia/en/8/81/Sunrisers_Hyderabad.svg",
-  RR:"https://upload.wikimedia.org/wikipedia/en/6/60/Rajasthan_Royals_Logo.svg",
-  DC:"https://upload.wikimedia.org/wikipedia/en/2/2f/Delhi_Capitals.svg",
-  GT:"https://upload.wikimedia.org/wikipedia/en/0/09/Gujarat_Titans_Logo.svg",
-  LSG:"https://upload.wikimedia.org/wikipedia/en/7/75/Lucknow_Super_Giants_IPL_Logo.svg",
-  KKR:"https://upload.wikimedia.org/wikipedia/en/4/4c/Kolkata_Knight_Riders_Logo.svg",
-  PBKS:"https://upload.wikimedia.org/wikipedia/en/d/d4/Punjab_Kings_Logo.svg"
+  CSK:"./logos/CSK.png",
+  MI:"./logos/MI.png",
+  RCB:"./logos/RCB.png",
+  SRH:"./logos/SRH.png",
+  RR:"./logos/RR.png",
+  DC:"./logos/DC.png",
+  GT:"./logos/GT.png",
+  LSG:"./logos/LSG.png",
+  KKR:"./logos/KKR.png",
+  PBKS:"./logos/PBKS.png"
 };
 
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
@@ -150,9 +150,8 @@ function oversToBalls(o){
   return (parseInt(a)||0)*6 + (parseInt(b)||0);
 }
 
-// 🔴 FIXED NRR LOGIC
 function getBalls(balls, wickets){
-  if(wickets === 3) return 60; // all out → full overs
+  if(wickets === 3) return 60;
   return balls;
 }
 
@@ -223,8 +222,7 @@ function render(){
     body.innerHTML+=`
     <tr class="${i<4?'top4':''}">
       <td class="team-cell">
-        <img src="${teamLogos[t.team]}" class="team-logo"
-         onerror="this.src='https://via.placeholder.com/28?text=${t.team[0]}'">
+        <img src="${teamLogos[t.team]}" class="team-logo">
         ${i===0 ? "👑 " : ""}${t.team}
       </td>
       <td>${t.played}</td>
