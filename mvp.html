@@ -14,7 +14,6 @@
     h1{
       text-align:center;
       margin-bottom:20px;
-      letter-spacing:1px;
     }
 
     .container{
@@ -32,7 +31,6 @@
       padding:15px;
       border-radius:14px;
       backdrop-filter: blur(10px);
-      box-shadow:0 0 20px rgba(0,0,0,0.3);
     }
 
     input, select {
@@ -42,11 +40,6 @@
       background:#020617;
       color:white;
       outline:none;
-      transition:0.2s;
-    }
-
-    input:focus, select:focus{
-      box-shadow:0 0 0 2px #22c55e;
     }
 
     button {
@@ -56,12 +49,6 @@
       border-radius:10px;
       cursor:pointer;
       font-weight:bold;
-      transition:0.2s;
-    }
-
-    button:hover{
-      transform:scale(1.05);
-      background:#16a34a;
     }
 
     .delete-btn {
@@ -69,47 +56,24 @@
       margin-top:8px;
     }
 
-    .delete-btn:hover{
-      background:#dc2626;
-    }
-
     .card {
       background: linear-gradient(145deg,#0f172a,#1e293b);
       padding:16px;
       margin:12px 0;
       border-radius:14px;
-      box-shadow:0 6px 20px rgba(0,0,0,0.4);
-      transition:0.3s;
+      transition: all 0.4s ease;
       position:relative;
-      overflow:hidden;
     }
 
-    .card:hover{
-      transform:translateY(-4px) scale(1.01);
-    }
-
-    .top {
-      font-weight:bold;
-      font-size:18px;
-    }
+    .top { font-weight:bold; font-size:18px; }
 
     .gold{ color:#facc15; }
     .silver{ color:#cbd5f5; }
     .bronze{ color:#fb923c; }
 
-    .stats{
-      margin-top:8px;
-      font-size:14px;
-      opacity:0.9;
-    }
+    .stats{ margin-top:8px; font-size:14px; }
+    .points{ font-weight:bold; margin-top:5px; }
 
-    .points{
-      font-size:16px;
-      font-weight:bold;
-      margin-top:5px;
-    }
-
-    /* Progress bar */
     .bar{
       height:6px;
       border-radius:6px;
@@ -125,20 +89,25 @@
       transition:width 0.6s ease;
     }
 
-    /* animation on load */
-    .card{
-      animation:fadeUp 0.4s ease;
+    /* RANK CHANGE EFFECTS */
+    .up {
+      animation: glowUp 0.6s;
     }
 
-    @keyframes fadeUp{
-      from{
-        opacity:0;
-        transform:translateY(10px);
-      }
-      to{
-        opacity:1;
-        transform:translateY(0);
-      }
+    .down {
+      animation: glowDown 0.6s;
+    }
+
+    @keyframes glowUp {
+      0% { box-shadow:0 0 0px #22c55e; }
+      50% { box-shadow:0 0 20px #22c55e; }
+      100% { box-shadow:0 0 0px #22c55e; }
+    }
+
+    @keyframes glowDown {
+      0% { box-shadow:0 0 0px #ef4444; }
+      50% { box-shadow:0 0 20px #ef4444; }
+      100% { box-shadow:0 0 0px #ef4444; }
     }
 
   </style>
@@ -164,8 +133,7 @@
 
 <script>
 
-// SAME LOGIC
-
+// PLAYERS
 const players = [
   "Shimron Hetmyer","Yashasvi Jaiswal","Vaibhav Sooryavanshi",
   "Manish Pandey","Cameron Green","Finn Allen","Mitchell Marsh",
@@ -178,13 +146,13 @@ const players = [
 ];
 
 const playerSelect = document.getElementById("player");
+players.forEach(p=> playerSelect.innerHTML += `<option>${p}</option>`);
 
-players.forEach(p=>{
-  playerSelect.innerHTML += `<option>${p}</option>`;
-});
-
+// DATA
 let data = JSON.parse(localStorage.getItem("mvpData")) || {};
+let prevRanks = {}; // store old positions
 
+// POINTS
 function calculatePoints(runs, sr){
   let points = runs;
 
@@ -199,6 +167,7 @@ function calculatePoints(runs, sr){
   return points;
 }
 
+// ADD
 function addPlayer(){
   let name = playerSelect.value;
   let runs = parseInt(document.getElementById("runs").value);
@@ -229,16 +198,19 @@ function addPlayer(){
   render();
 }
 
+// SAVE
 function saveData(){
   localStorage.setItem("mvpData", JSON.stringify(data));
 }
 
+// DELETE
 function deletePlayer(name){
   delete data[name];
   saveData();
   render();
 }
 
+// RENDER
 function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
@@ -264,17 +236,22 @@ function render(){
 
   arr.forEach((p,i)=>{
 
-    let medalClass = "";
-    let medal = "";
-
-    if(i===0){ medal="🥇"; medalClass="gold"; }
-    else if(i===1){ medal="🥈"; medalClass="silver"; }
-    else if(i===2){ medal="🥉"; medalClass="bronze"; }
+    let medal = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : "";
+    let medalClass = i===0 ? "gold" : i===1 ? "silver" : i===2 ? "bronze" : "";
 
     let width = (p.pts / maxPoints) * 100;
 
+    // detect rank change
+    let animationClass = "";
+    if(prevRanks[p.name] !== undefined){
+      if(i < prevRanks[p.name]) animationClass = "up";
+      else if(i > prevRanks[p.name]) animationClass = "down";
+    }
+
+    prevRanks[p.name] = i;
+
     div.innerHTML += `
-    <div class="card">
+    <div class="card ${animationClass}">
       <div class="top ${medalClass}">
         ${i+1}. ${medal} ${p.name}
       </div>
@@ -299,12 +276,15 @@ function render(){
   });
 }
 
+// RESET
 function resetMVP(){
   data = {};
+  prevRanks = {};
   localStorage.removeItem("mvpData");
   render();
 }
 
+// INIT
 render();
 
 </script>
