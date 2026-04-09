@@ -5,9 +5,21 @@
 
   <style>
     body {
-      background: linear-gradient(135deg,#020617,#0f172a);
+      margin:0;
+      background: radial-gradient(circle at top,#0f172a,#020617);
       color:white;
       font-family:'Segoe UI',sans-serif;
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:20px;
+      letter-spacing:1px;
+    }
+
+    .container{
+      max-width:900px;
+      margin:auto;
       padding:20px;
     }
 
@@ -15,50 +27,128 @@
       display:flex;
       gap:10px;
       flex-wrap:wrap;
-      margin-bottom:20px;
+      margin-bottom:25px;
       background: rgba(255,255,255,0.05);
       padding:15px;
-      border-radius:12px;
+      border-radius:14px;
+      backdrop-filter: blur(10px);
+      box-shadow:0 0 20px rgba(0,0,0,0.3);
     }
 
     input, select {
       padding:10px;
-      border-radius:8px;
+      border-radius:10px;
       border:none;
-      background:#0f172a;
+      background:#020617;
       color:white;
+      outline:none;
+      transition:0.2s;
+    }
+
+    input:focus, select:focus{
+      box-shadow:0 0 0 2px #22c55e;
     }
 
     button {
-      padding:6px 12px;
+      padding:8px 14px;
       background:#22c55e;
       border:none;
-      border-radius:8px;
+      border-radius:10px;
       cursor:pointer;
+      font-weight:bold;
+      transition:0.2s;
+    }
+
+    button:hover{
+      transform:scale(1.05);
+      background:#16a34a;
     }
 
     .delete-btn {
       background:#ef4444;
-      margin-top:6px;
+      margin-top:8px;
+    }
+
+    .delete-btn:hover{
+      background:#dc2626;
     }
 
     .card {
-      background:#1e293b;
-      padding:12px;
-      margin:10px 0;
-      border-radius:10px;
+      background: linear-gradient(145deg,#0f172a,#1e293b);
+      padding:16px;
+      margin:12px 0;
+      border-radius:14px;
+      box-shadow:0 6px 20px rgba(0,0,0,0.4);
+      transition:0.3s;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .card:hover{
+      transform:translateY(-4px) scale(1.01);
     }
 
     .top {
-      color:#22c55e;
       font-weight:bold;
+      font-size:18px;
     }
+
+    .gold{ color:#facc15; }
+    .silver{ color:#cbd5f5; }
+    .bronze{ color:#fb923c; }
+
+    .stats{
+      margin-top:8px;
+      font-size:14px;
+      opacity:0.9;
+    }
+
+    .points{
+      font-size:16px;
+      font-weight:bold;
+      margin-top:5px;
+    }
+
+    /* Progress bar */
+    .bar{
+      height:6px;
+      border-radius:6px;
+      margin-top:10px;
+      background:#020617;
+      overflow:hidden;
+    }
+
+    .fill{
+      height:100%;
+      background: linear-gradient(90deg,#22c55e,#4ade80);
+      width:0%;
+      transition:width 0.6s ease;
+    }
+
+    /* animation on load */
+    .card{
+      animation:fadeUp 0.4s ease;
+    }
+
+    @keyframes fadeUp{
+      from{
+        opacity:0;
+        transform:translateY(10px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
   </style>
 </head>
 
 <body>
 
-<h1>MVP Calculator</h1>
+<div class="container">
+
+<h1>🏏 MVP Calculator</h1>
 
 <div class="input-box">
   <select id="player"></select>
@@ -70,9 +160,12 @@
 
 <div id="mvpList"></div>
 
+</div>
+
 <script>
 
-// PLAYERS
+// SAME LOGIC
+
 const players = [
   "Shimron Hetmyer","Yashasvi Jaiswal","Vaibhav Sooryavanshi",
   "Manish Pandey","Cameron Green","Finn Allen","Mitchell Marsh",
@@ -90,10 +183,8 @@ players.forEach(p=>{
   playerSelect.innerHTML += `<option>${p}</option>`;
 });
 
-// LOAD DATA
 let data = JSON.parse(localStorage.getItem("mvpData")) || {};
 
-// POINT LOGIC
 function calculatePoints(runs, sr){
   let points = runs;
 
@@ -108,7 +199,6 @@ function calculatePoints(runs, sr){
   return points;
 }
 
-// ADD PLAYER
 function addPlayer(){
   let name = playerSelect.value;
   let runs = parseInt(document.getElementById("runs").value);
@@ -139,19 +229,16 @@ function addPlayer(){
   render();
 }
 
-// SAVE
 function saveData(){
   localStorage.setItem("mvpData", JSON.stringify(data));
 }
 
-// DELETE PLAYER
 function deletePlayer(name){
   delete data[name];
   saveData();
   render();
 }
 
-// RENDER
 function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
@@ -173,15 +260,37 @@ function render(){
 
   arr.sort((a,b)=> b.pts - a.pts);
 
+  let maxPoints = arr.length ? arr[0].pts : 1;
+
   arr.forEach((p,i)=>{
+
+    let medalClass = "";
+    let medal = "";
+
+    if(i===0){ medal="🥇"; medalClass="gold"; }
+    else if(i===1){ medal="🥈"; medalClass="silver"; }
+    else if(i===2){ medal="🥉"; medalClass="bronze"; }
+
+    let width = (p.pts / maxPoints) * 100;
+
     div.innerHTML += `
     <div class="card">
-      <div class="${i===0 ? "top" : ""}">
-        ${i+1}. ${i===0 ? "🏆 " : ""}${p.name}
+      <div class="top ${medalClass}">
+        ${i+1}. ${medal} ${p.name}
       </div>
-      Matches: ${p.matches} | Runs: ${p.runs}<br>
-      Avg SR: ${p.sr}<br>
-      Points: ${p.pts}<br>
+
+      <div class="stats">
+        Matches: ${p.matches} | Runs: ${p.runs}<br>
+        Avg SR: ${p.sr}
+      </div>
+
+      <div class="points">
+        Points: ${p.pts}
+      </div>
+
+      <div class="bar">
+        <div class="fill" style="width:${width}%"></div>
+      </div>
 
       <button class="delete-btn" onclick="deletePlayer('${p.name}')">
         Delete
@@ -190,14 +299,12 @@ function render(){
   });
 }
 
-// RESET
 function resetMVP(){
   data = {};
   localStorage.removeItem("mvpData");
   render();
 }
 
-// LOAD
 render();
 
 </script>
