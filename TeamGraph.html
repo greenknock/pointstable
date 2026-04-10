@@ -1,77 +1,137 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Team Performance Graph</title>
+  <title>Team Graph</title>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body{
+    *{
       margin:0;
-      font-family:Segoe UI;
-      background: radial-gradient(circle at top,#0f172a,#020617);
+      padding:0;
+      box-sizing:border-box;
+      font-family:'Poppins',sans-serif;
+    }
+
+    body{
+      min-height:100vh;
+      background: radial-gradient(circle at 20% 20%, #22c55e22, transparent),
+                  radial-gradient(circle at 80% 80%, #3b82f622, transparent),
+                  #020617;
       color:white;
+      display:flex;
+      justify-content:center;
+      padding:40px 20px;
     }
 
     .container{
+      width:100%;
       max-width:900px;
-      margin:auto;
-      padding:20px;
     }
 
     h1{
       text-align:center;
+      margin-bottom:25px;
+      font-size:32px;
+      letter-spacing:1px;
+    }
+
+    /* INPUT CARD */
+    .input-card{
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+      border-radius:16px;
+      padding:20px;
       margin-bottom:20px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.5);
     }
 
     textarea{
       width:100%;
-      height:100px;
-      border-radius:10px;
-      border:none;
-      padding:10px;
+      height:90px;
       background:#020617;
+      border:none;
+      border-radius:10px;
+      padding:10px;
       color:white;
-      margin-bottom:10px;
+      resize:none;
+      outline:none;
+    }
+
+    .btns{
+      margin-top:15px;
+      display:flex;
+      gap:10px;
     }
 
     button{
-      padding:8px 14px;
       border:none;
+      padding:10px 18px;
       border-radius:10px;
-      background:#22c55e;
-      color:white;
       cursor:pointer;
-      margin-right:10px;
-      transition:0.2s;
+      font-weight:500;
+      transition:0.25s;
+    }
+
+    .add{
+      background:#22c55e;
+    }
+
+    .reset{
+      background:#ef4444;
     }
 
     button:hover{
-      background:#16a34a;
-      transform:scale(1.05);
+      transform:translateY(-2px);
+      box-shadow:0 6px 20px rgba(0,0,0,0.6);
     }
 
+    /* TEAM TABS */
     .tabs{
       display:flex;
       gap:10px;
-      margin:15px 0;
       flex-wrap:wrap;
+      margin-bottom:20px;
     }
 
-    .tabs button{
+    .tab{
+      padding:8px 14px;
       background:#1e293b;
+      border-radius:999px;
+      cursor:pointer;
+      transition:0.3s;
     }
 
-    .tabs button.active{
+    .tab.active{
       background:#22c55e;
+      transform:scale(1.05);
     }
 
-    .card{
-      background:#1e293b;
-      padding:15px;
-      border-radius:12px;
-      box-shadow:0 0 15px rgba(0,0,0,0.4);
+    .tab:hover{
+      transform:scale(1.05);
     }
+
+    /* GRAPH CARD */
+    .graph-card{
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+      padding:25px;
+      border-radius:16px;
+      box-shadow:0 15px 40px rgba(0,0,0,0.6);
+      animation:fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn{
+      from{opacity:0; transform:translateY(20px);}
+      to{opacity:1; transform:translateY(0);}
+    }
+
+    .empty{
+      text-align:center;
+      opacity:0.5;
+      padding:40px 0;
+    }
+
   </style>
 </head>
 
@@ -79,10 +139,10 @@
 
 <div class="container">
 
-<h1>📊 Team Performance Graph</h1>
+  <h1>📊 Team Performance Graph</h1>
 
-<textarea id="matchInput" placeholder='Paste match JSON like:
-{
+  <div class="input-card">
+    <textarea id="matchInput" placeholder='{
   "match": 1,
   "teamA": "RCB",
   "teamB": "MI",
@@ -90,14 +150,18 @@
   "teamBPoints": 30
 }'></textarea>
 
-<button onclick="addMatch()">Add Match</button>
-<button onclick="resetGraph()">Reset</button>
+    <div class="btns">
+      <button class="add" onclick="addMatch()">Add Match</button>
+      <button class="reset" onclick="resetGraph()">Reset</button>
+    </div>
+  </div>
 
-<div class="tabs" id="teamTabs"></div>
+  <div class="tabs" id="teamTabs"></div>
 
-<div class="card">
-  <canvas id="teamChart"></canvas>
-</div>
+  <div class="graph-card">
+    <canvas id="teamChart"></canvas>
+    <div id="emptyState" class="empty">No data yet</div>
+  </div>
 
 </div>
 
@@ -107,64 +171,63 @@ let matches = JSON.parse(localStorage.getItem("teamGraphData")) || [];
 let chart = null;
 let currentTeam = null;
 
-// ADD MATCH
 function addMatch(){
   try{
     let input = JSON.parse(document.getElementById("matchInput").value);
-
     matches.push(input);
-    localStorage.setItem("teamGraphData", JSON.stringify(matches));
 
+    localStorage.setItem("teamGraphData", JSON.stringify(matches));
     document.getElementById("matchInput").value = "";
 
     renderTeams();
   }catch{
-    alert("Invalid JSON format");
+    alert("Invalid JSON");
   }
 }
 
-// RESET
 function resetGraph(){
   matches = [];
   localStorage.removeItem("teamGraphData");
+  currentTeam = null;
   renderTeams();
 }
 
-// GET TEAMS
 function getTeams(){
   let set = new Set();
-
   matches.forEach(m=>{
     set.add(m.teamA);
     set.add(m.teamB);
   });
-
   return [...set];
 }
 
-// RENDER TEAM TABS
 function renderTeams(){
   let tabs = document.getElementById("teamTabs");
   tabs.innerHTML = "";
 
   let teams = getTeams();
 
+  if(!teams.length){
+    document.getElementById("emptyState").style.display = "block";
+    if(chart) chart.destroy();
+    return;
+  }
+
+  document.getElementById("emptyState").style.display = "none";
+
   teams.forEach(team=>{
     let active = team === currentTeam ? "active" : "";
 
     tabs.innerHTML += `
-      <button class="${active}" onclick="showGraph('${team}')">
+      <div class="tab ${active}" onclick="showGraph('${team}')">
         ${team}
-      </button>
+      </div>
     `;
   });
 
-  if(teams.length && !currentTeam){
-    showGraph(teams[0]);
-  }
+  if(!currentTeam) showGraph(teams[0]);
 }
 
-// SHOW GRAPH
 function showGraph(team){
   currentTeam = team;
   renderTeams();
@@ -174,11 +237,11 @@ function showGraph(team){
 
   matches.forEach(m=>{
     if(m.teamA === team){
-      labels.push("Match " + m.match);
+      labels.push("M" + m.match);
       dataPoints.push(m.teamAPoints);
     }
     if(m.teamB === team){
-      labels.push("Match " + m.match);
+      labels.push("M" + m.match);
       dataPoints.push(m.teamBPoints);
     }
   });
@@ -192,13 +255,14 @@ function showGraph(team){
     data: {
       labels: labels,
       datasets: [{
-        label: team + " Points",
+        label: team,
         data: dataPoints,
-        tension: 0.3,
-        borderWidth: 2
+        borderWidth:2,
+        tension:0.4,
+        pointRadius:4
       }]
     },
-    options: {
+    options:{
       plugins:{
         legend:{ labels:{ color:"white" } }
       },
@@ -210,7 +274,6 @@ function showGraph(team){
   });
 }
 
-// INIT
 renderTeams();
 
 </script>
