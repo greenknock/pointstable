@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>Team Graph</title>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
@@ -10,126 +9,76 @@
       margin:0;
       padding:0;
       box-sizing:border-box;
-      font-family:'Poppins',sans-serif;
+      font-family:Poppins;
     }
 
     body{
-      min-height:100vh;
-      background: radial-gradient(circle at 20% 20%, #22c55e22, transparent),
-                  radial-gradient(circle at 80% 80%, #3b82f622, transparent),
-                  #020617;
+      background:#020617;
       color:white;
+    }
+
+    /* NAV BAR */
+    .navbar{
       display:flex;
       justify-content:center;
-      padding:40px 20px;
+      gap:40px;
+      padding:15px;
+      background:#000;
+      border-bottom:1px solid #222;
     }
 
-    .container{
-      width:100%;
-      max-width:900px;
-    }
-
-    h1{
-      text-align:center;
-      margin-bottom:25px;
-      font-size:32px;
-      letter-spacing:1px;
-    }
-
-    /* INPUT CARD */
-    .input-card{
-      background:rgba(255,255,255,0.05);
-      backdrop-filter:blur(10px);
-      border-radius:16px;
-      padding:20px;
-      margin-bottom:20px;
-      box-shadow:0 10px 30px rgba(0,0,0,0.5);
-    }
-
-    textarea{
-      width:100%;
-      height:90px;
-      background:#020617;
-      border:none;
-      border-radius:10px;
-      padding:10px;
-      color:white;
-      resize:none;
-      outline:none;
-    }
-
-    .btns{
-      margin-top:15px;
-      display:flex;
-      gap:10px;
-    }
-
-    button{
-      border:none;
-      padding:10px 18px;
-      border-radius:10px;
+    .nav-item{
       cursor:pointer;
+      color:#60a5fa;
       font-weight:500;
-      transition:0.25s;
-    }
-
-    .add{
-      background:#22c55e;
-    }
-
-    .reset{
-      background:#ef4444;
-    }
-
-    button:hover{
-      transform:translateY(-2px);
-      box-shadow:0 6px 20px rgba(0,0,0,0.6);
-    }
-
-    /* TEAM TABS */
-    .tabs{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-bottom:20px;
-    }
-
-    .tab{
-      padding:8px 14px;
-      background:#1e293b;
-      border-radius:999px;
-      cursor:pointer;
       transition:0.3s;
     }
 
-    .tab.active{
+    .nav-item:hover{
+      color:white;
+    }
+
+    .active{
+      color:white;
+      border-bottom:2px solid #22c55e;
+      padding-bottom:5px;
+    }
+
+    /* FORM */
+    .form-box{
+      display:none;
+      max-width:500px;
+      margin:30px auto;
+      background:#1e293b;
+      padding:20px;
+      border-radius:12px;
+    }
+
+    input{
+      width:100%;
+      padding:10px;
+      margin:10px 0;
+      border:none;
+      border-radius:8px;
+      background:#020617;
+      color:white;
+    }
+
+    button{
+      padding:10px;
+      border:none;
+      border-radius:8px;
       background:#22c55e;
-      transform:scale(1.05);
+      cursor:pointer;
     }
 
-    .tab:hover{
-      transform:scale(1.05);
-    }
-
-    /* GRAPH CARD */
-    .graph-card{
-      background:rgba(255,255,255,0.05);
-      backdrop-filter:blur(10px);
-      padding:25px;
-      border-radius:16px;
-      box-shadow:0 15px 40px rgba(0,0,0,0.6);
-      animation:fadeIn 0.4s ease;
-    }
-
-    @keyframes fadeIn{
-      from{opacity:0; transform:translateY(20px);}
-      to{opacity:1; transform:translateY(0);}
-    }
-
-    .empty{
-      text-align:center;
-      opacity:0.5;
-      padding:40px 0;
+    /* GRAPH */
+    .graph{
+      max-width:800px;
+      margin:40px auto;
+      background:#1e293b;
+      padding:20px;
+      border-radius:12px;
     }
 
   </style>
@@ -137,144 +86,104 @@
 
 <body>
 
-<div class="container">
+<!-- NAV BAR -->
+<div class="navbar" id="navbar"></div>
 
-  <h1>📊 Team Performance Graph</h1>
+<!-- FORM -->
+<div class="form-box" id="formBox">
+  <h3 id="teamTitle"></h3>
 
-  <div class="input-card">
-    <textarea id="matchInput" placeholder='{
-  "match": 1,
-  "teamA": "RCB",
-  "teamB": "MI",
-  "teamAPoints": 45,
-  "teamBPoints": 30
-}'></textarea>
+  <input id="matchNo" placeholder="Match No">
+  <input id="points" placeholder="Team Points">
 
-    <div class="btns">
-      <button class="add" onclick="addMatch()">Add Match</button>
-      <button class="reset" onclick="resetGraph()">Reset</button>
-    </div>
-  </div>
+  <button onclick="addData()">Add Data</button>
+</div>
 
-  <div class="tabs" id="teamTabs"></div>
-
-  <div class="graph-card">
-    <canvas id="teamChart"></canvas>
-    <div id="emptyState" class="empty">No data yet</div>
-  </div>
-
+<!-- GRAPH -->
+<div class="graph">
+  <canvas id="chart"></canvas>
 </div>
 
 <script>
 
-let matches = JSON.parse(localStorage.getItem("teamGraphData")) || [];
-let chart = null;
+const teams = ["RCB","MI","CSK","RR","GT","SRH","PBKS","LSG","KKR","DC"];
+
 let currentTeam = null;
+let data = JSON.parse(localStorage.getItem("teamData")) || {};
 
-function addMatch(){
-  try{
-    let input = JSON.parse(document.getElementById("matchInput").value);
-    matches.push(input);
+const navbar = document.getElementById("navbar");
 
-    localStorage.setItem("teamGraphData", JSON.stringify(matches));
-    document.getElementById("matchInput").value = "";
+// CREATE NAV
+teams.forEach(team=>{
+  navbar.innerHTML += `<div class="nav-item" onclick="selectTeam('${team}', this)">${team}</div>`;
+});
 
-    renderTeams();
-  }catch{
-    alert("Invalid JSON");
-  }
-}
-
-function resetGraph(){
-  matches = [];
-  localStorage.removeItem("teamGraphData");
-  currentTeam = null;
-  renderTeams();
-}
-
-function getTeams(){
-  let set = new Set();
-  matches.forEach(m=>{
-    set.add(m.teamA);
-    set.add(m.teamB);
-  });
-  return [...set];
-}
-
-function renderTeams(){
-  let tabs = document.getElementById("teamTabs");
-  tabs.innerHTML = "";
-
-  let teams = getTeams();
-
-  if(!teams.length){
-    document.getElementById("emptyState").style.display = "block";
-    if(chart) chart.destroy();
-    return;
-  }
-
-  document.getElementById("emptyState").style.display = "none";
-
-  teams.forEach(team=>{
-    let active = team === currentTeam ? "active" : "";
-
-    tabs.innerHTML += `
-      <div class="tab ${active}" onclick="showGraph('${team}')">
-        ${team}
-      </div>
-    `;
-  });
-
-  if(!currentTeam) showGraph(teams[0]);
-}
-
-function showGraph(team){
+// SELECT TEAM
+function selectTeam(team, el){
   currentTeam = team;
-  renderTeams();
 
-  let labels = [];
-  let dataPoints = [];
+  document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));
+  el.classList.add("active");
 
-  matches.forEach(m=>{
-    if(m.teamA === team){
-      labels.push("M" + m.match);
-      dataPoints.push(m.teamAPoints);
-    }
-    if(m.teamB === team){
-      labels.push("M" + m.match);
-      dataPoints.push(m.teamBPoints);
-    }
+  document.getElementById("formBox").style.display = "block";
+  document.getElementById("teamTitle").innerText = team + " Data";
+
+  drawGraph();
+}
+
+// ADD DATA
+function addData(){
+  let match = document.getElementById("matchNo").value;
+  let pts = document.getElementById("points").value;
+
+  if(!match || !pts) return;
+
+  if(!data[currentTeam]) data[currentTeam] = [];
+
+  data[currentTeam].push({
+    match: Number(match),
+    points: Number(pts)
   });
 
-  let ctx = document.getElementById("teamChart");
+  localStorage.setItem("teamData", JSON.stringify(data));
+
+  drawGraph();
+}
+
+// GRAPH
+let chart;
+
+function drawGraph(){
+  if(!currentTeam || !data[currentTeam]) return;
+
+  let sorted = data[currentTeam].sort((a,b)=>a.match-b.match);
+
+  let labels = sorted.map(x=>"M"+x.match);
+  let points = sorted.map(x=>x.points);
+
+  let ctx = document.getElementById("chart");
 
   if(chart) chart.destroy();
 
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: team,
-        data: dataPoints,
-        borderWidth:2,
-        tension:0.4,
-        pointRadius:4
+  chart = new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:labels,
+      datasets:[{
+        label:currentTeam,
+        data:points,
+        tension:0.4
       }]
     },
     options:{
-      plugins:{
-        legend:{ labels:{ color:"white" } }
-      },
+      plugins:{legend:{labels:{color:"white"}}},
       scales:{
-        x:{ ticks:{ color:"white" } },
-        y:{ ticks:{ color:"white" } }
+        x:{ticks:{color:"white"}},
+        y:{ticks:{color:"white"}}
       }
     }
   });
 }
-
-renderTeams();
 
 </script>
 
