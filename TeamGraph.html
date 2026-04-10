@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Team Performance Graph</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body{
+      margin:0;
+      font-family:Segoe UI;
+      background: radial-gradient(circle at top,#0f172a,#020617);
+      color:white;
+    }
+
+    .container{
+      max-width:900px;
+      margin:auto;
+      padding:20px;
+    }
+
+    h1{
+      text-align:center;
+      margin-bottom:20px;
+    }
+
+    textarea{
+      width:100%;
+      height:100px;
+      border-radius:10px;
+      border:none;
+      padding:10px;
+      background:#020617;
+      color:white;
+      margin-bottom:10px;
+    }
+
+    button{
+      padding:8px 14px;
+      border:none;
+      border-radius:10px;
+      background:#22c55e;
+      color:white;
+      cursor:pointer;
+      margin-right:10px;
+      transition:0.2s;
+    }
+
+    button:hover{
+      background:#16a34a;
+      transform:scale(1.05);
+    }
+
+    .tabs{
+      display:flex;
+      gap:10px;
+      margin:15px 0;
+      flex-wrap:wrap;
+    }
+
+    .tabs button{
+      background:#1e293b;
+    }
+
+    .tabs button.active{
+      background:#22c55e;
+    }
+
+    .card{
+      background:#1e293b;
+      padding:15px;
+      border-radius:12px;
+      box-shadow:0 0 15px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📊 Team Performance Graph</h1>
+
+<textarea id="matchInput" placeholder='Paste match JSON like:
+{
+  "match": 1,
+  "teamA": "RCB",
+  "teamB": "MI",
+  "teamAPoints": 45,
+  "teamBPoints": 30
+}'></textarea>
+
+<button onclick="addMatch()">Add Match</button>
+<button onclick="resetGraph()">Reset</button>
+
+<div class="tabs" id="teamTabs"></div>
+
+<div class="card">
+  <canvas id="teamChart"></canvas>
+</div>
+
+</div>
+
+<script>
+
+let matches = JSON.parse(localStorage.getItem("teamGraphData")) || [];
+let chart = null;
+let currentTeam = null;
+
+// ADD MATCH
+function addMatch(){
+  try{
+    let input = JSON.parse(document.getElementById("matchInput").value);
+
+    matches.push(input);
+    localStorage.setItem("teamGraphData", JSON.stringify(matches));
+
+    document.getElementById("matchInput").value = "";
+
+    renderTeams();
+  }catch{
+    alert("Invalid JSON format");
+  }
+}
+
+// RESET
+function resetGraph(){
+  matches = [];
+  localStorage.removeItem("teamGraphData");
+  renderTeams();
+}
+
+// GET TEAMS
+function getTeams(){
+  let set = new Set();
+
+  matches.forEach(m=>{
+    set.add(m.teamA);
+    set.add(m.teamB);
+  });
+
+  return [...set];
+}
+
+// RENDER TEAM TABS
+function renderTeams(){
+  let tabs = document.getElementById("teamTabs");
+  tabs.innerHTML = "";
+
+  let teams = getTeams();
+
+  teams.forEach(team=>{
+    let active = team === currentTeam ? "active" : "";
+
+    tabs.innerHTML += `
+      <button class="${active}" onclick="showGraph('${team}')">
+        ${team}
+      </button>
+    `;
+  });
+
+  if(teams.length && !currentTeam){
+    showGraph(teams[0]);
+  }
+}
+
+// SHOW GRAPH
+function showGraph(team){
+  currentTeam = team;
+  renderTeams();
+
+  let labels = [];
+  let dataPoints = [];
+
+  matches.forEach(m=>{
+    if(m.teamA === team){
+      labels.push("Match " + m.match);
+      dataPoints.push(m.teamAPoints);
+    }
+    if(m.teamB === team){
+      labels.push("Match " + m.match);
+      dataPoints.push(m.teamBPoints);
+    }
+  });
+
+  let ctx = document.getElementById("teamChart");
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: team + " Points",
+        data: dataPoints,
+        tension: 0.3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      plugins:{
+        legend:{ labels:{ color:"white" } }
+      },
+      scales:{
+        x:{ ticks:{ color:"white" } },
+        y:{ ticks:{ color:"white" } }
+      }
+    }
+  });
+}
+
+// INIT
+renderTeams();
+
+</script>
+
+</body>
+</html>
