@@ -1,165 +1,128 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Team Graph</title>
+  <title>Team Analytics</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    *{
-      margin:0;
-      padding:0;
-      box-sizing:border-box;
-      font-family:Poppins;
-    }
-
     body{
       background:#020617;
       color:white;
+      font-family:Segoe UI;
+      margin:0;
     }
 
-    /* NAV BAR */
+    /* NAVBAR */
     .navbar{
       display:flex;
       justify-content:center;
-      gap:40px;
+      gap:30px;
       padding:15px;
       background:#000;
-      border-bottom:1px solid #222;
     }
 
-    .nav-item{
+    .nav{
       cursor:pointer;
       color:#60a5fa;
-      font-weight:500;
-      transition:0.3s;
     }
 
-    .nav-item:hover{
-      color:white;
-    }
-
-    .active{
+    .nav.active{
       color:white;
       border-bottom:2px solid #22c55e;
-      padding-bottom:5px;
-    }
-
-    /* FORM */
-    .form-box{
-      display:none;
-      max-width:500px;
-      margin:30px auto;
-      background:#1e293b;
-      padding:20px;
-      border-radius:12px;
-    }
-
-    input{
-      width:100%;
-      padding:10px;
-      margin:10px 0;
-      border:none;
-      border-radius:8px;
-      background:#020617;
-      color:white;
-    }
-
-    button{
-      padding:10px;
-      border:none;
-      border-radius:8px;
-      background:#22c55e;
-      cursor:pointer;
     }
 
     /* GRAPH */
     .graph{
-      max-width:800px;
+      max-width:900px;
       margin:40px auto;
       background:#1e293b;
       padding:20px;
       border-radius:12px;
     }
-
   </style>
 </head>
 
 <body>
 
-<!-- NAV BAR -->
-<div class="navbar" id="navbar"></div>
+<div class="navbar" id="nav"></div>
 
-<!-- FORM -->
-<div class="form-box" id="formBox">
-  <h3 id="teamTitle"></h3>
-
-  <input id="matchNo" placeholder="Match No">
-  <input id="points" placeholder="Team Points">
-
-  <button onclick="addData()">Add Data</button>
-</div>
-
-<!-- GRAPH -->
 <div class="graph">
   <canvas id="chart"></canvas>
 </div>
 
 <script>
 
-const teams = ["RCB","MI","CSK","RR","GT","SRH","PBKS","LSG","KKR","DC"];
+const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
+const nav = document.getElementById("nav");
 
-let currentTeam = null;
-let data = JSON.parse(localStorage.getItem("teamData")) || {};
-
-const navbar = document.getElementById("navbar");
-
-// CREATE NAV
-teams.forEach(team=>{
-  navbar.innerHTML += `<div class="nav-item" onclick="selectTeam('${team}', this)">${team}</div>`;
+teams.forEach(t=>{
+  nav.innerHTML += `<div class="nav" onclick="selectTeam('${t}',this)">${t}</div>`;
 });
+
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
+let currentTeam = null;
+let chart;
+
+// CONVERT OVERS → BALLS
+function oversToBalls(o){
+  let [a,b]=(o||"").split(".");
+  return (parseInt(a)||0)*6 + (parseInt(b)||0);
+}
+
+// CALCULATE BALLS FACED (your rule)
+function getBalls(balls, wickets){
+  if(wickets === 3) return 60;
+  return balls;
+}
 
 // SELECT TEAM
 function selectTeam(team, el){
   currentTeam = team;
 
-  document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
   el.classList.add("active");
 
-  document.getElementById("formBox").style.display = "block";
-  document.getElementById("teamTitle").innerText = team + " Data";
-
   drawGraph();
 }
 
-// ADD DATA
-function addData(){
-  let match = document.getElementById("matchNo").value;
-  let pts = document.getElementById("points").value;
-
-  if(!match || !pts) return;
-
-  if(!data[currentTeam]) data[currentTeam] = [];
-
-  data[currentTeam].push({
-    match: Number(match),
-    points: Number(pts)
-  });
-
-  localStorage.setItem("teamData", JSON.stringify(data));
-
-  drawGraph();
-}
-
-// GRAPH
-let chart;
-
+// DRAW GRAPH
 function drawGraph(){
-  if(!currentTeam || !data[currentTeam]) return;
+  if(!currentTeam) return;
 
-  let sorted = data[currentTeam].sort((a,b)=>a.match-b.match);
+  let labels = [];
+  let nrrData = [];
+  let colors = [];
 
-  let labels = sorted.map(x=>"M"+x.match);
-  let points = sorted.map(x=>x.points);
+  matches.forEach((m,i)=>{
+
+    let wkA = m.wkA || 0;
+    let wkB = m.wkB || 0;
+
+    let ballsA = getBalls(oversToBalls(m.oversA), wkA);
+    let ballsB = getBalls(oversToBalls(m.oversB), wkB);
+
+    let nrrA = (m.rA/(ballsA/6)) - (m.rB/(ballsB/6));
+    let nrrB = (m.rB/(ballsB/6)) - (m.rA/(ballsA/6));
+
+    // TEAM A
+    if(m.teamA === currentTeam){
+      labels.push("M" + (matches.length - i));
+      nrrData.push(nrrA.toFixed(2));
+
+      if(m.rA > m.rB) colors.push("green");
+      else colors.push("red");
+    }
+
+    // TEAM B
+    if(m.teamB === currentTeam){
+      labels.push("M" + (matches.length - i));
+      nrrData.push(nrrB.toFixed(2));
+
+      if(m.rB > m.rA) colors.push("green");
+      else colors.push("red");
+    }
+
+  });
 
   let ctx = document.getElementById("chart");
 
@@ -170,13 +133,18 @@ function drawGraph(){
     data:{
       labels:labels,
       datasets:[{
-        label:currentTeam,
-        data:points,
-        tension:0.4
+        label: currentTeam + " NRR",
+        data:nrrData,
+        borderColor:"#22c55e",
+        tension:0.4,
+        pointBackgroundColor: colors,
+        pointRadius:6
       }]
     },
     options:{
-      plugins:{legend:{labels:{color:"white"}}},
+      plugins:{
+        legend:{labels:{color:"white"}}
+      },
       scales:{
         x:{ticks:{color:"white"}},
         y:{ticks:{color:"white"}}
