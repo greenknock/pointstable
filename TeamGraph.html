@@ -6,95 +6,135 @@
 
   <style>
     body{
-      background:#020617;
-      color:white;
-      font-family:Segoe UI;
       margin:0;
+      font-family:Segoe UI;
+      background: radial-gradient(circle at 20% 20%, #22c55e22, transparent),
+                  radial-gradient(circle at 80% 80%, #3b82f622, transparent),
+                  #020617;
+      color:white;
     }
 
-    .navbar{
+    /* HEADER */
+    .header{
+      text-align:center;
+      padding:20px;
+      font-size:28px;
+      font-weight:bold;
+    }
+
+    /* TEAM SELECT */
+    .team-select{
       display:flex;
       justify-content:center;
-      gap:30px;
-      padding:15px;
-      background:#000;
+      gap:20px;
+      margin-bottom:20px;
     }
 
-    .nav{
-      cursor:pointer;
-      color:#60a5fa;
-    }
-
-    .nav.active{
-      color:white;
-      border-bottom:2px solid #22c55e;
-    }
-
-    .graph{
-      max-width:900px;
-      margin:40px auto;
+    select{
+      padding:10px;
+      border-radius:10px;
+      border:none;
       background:#1e293b;
-      padding:20px;
-      border-radius:12px;
+      color:white;
+      font-size:16px;
     }
+
+    /* GRAPH CARD */
+    .graph-card{
+      max-width:1000px;
+      margin:20px auto;
+      background:rgba(255,255,255,0.05);
+      backdrop-filter:blur(10px);
+      padding:25px;
+      border-radius:16px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.7);
+      transition:0.3s;
+    }
+
+    .graph-card:hover{
+      transform:translateY(-5px);
+    }
+
+    canvas{
+      width:100% !important;
+    }
+
+    /* TEAM LABELS */
+    .legend{
+      display:flex;
+      justify-content:center;
+      gap:20px;
+      margin-bottom:10px;
+      font-size:14px;
+    }
+
+    .box{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .color{
+      width:14px;
+      height:14px;
+      border-radius:4px;
+    }
+
   </style>
 </head>
 
 <body>
 
-<div class="navbar" id="nav"></div>
+<div class="header">📊 Team Comparison Analytics</div>
 
-<div class="graph">
+<div class="team-select">
+  <select id="team1"></select>
+  <select id="team2"></select>
+</div>
+
+<div class="legend">
+  <div class="box"><div class="color" style="background:#22c55e"></div> Team 1</div>
+  <div class="box"><div class="color" style="background:#3b82f6"></div> Team 2</div>
+</div>
+
+<div class="graph-card">
   <canvas id="chart"></canvas>
 </div>
 
 <script>
 
 const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
-const nav = document.getElementById("nav");
+
+const t1 = document.getElementById("team1");
+const t2 = document.getElementById("team2");
 
 teams.forEach(t=>{
-  nav.innerHTML += `<div class="nav" onclick="selectTeam('${t}',this)">${t}</div>`;
+  t1.innerHTML += `<option>${t}</option>`;
+  t2.innerHTML += `<option>${t}</option>`;
 });
 
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
-let currentTeam = null;
 let chart;
 
-// overs to balls
+// overs → balls
 function oversToBalls(o){
   let [a,b]=(o||"").split(".");
   return (parseInt(a)||0)*6 + (parseInt(b)||0);
 }
 
-// your wicket rule
 function getBalls(balls, wickets){
   if(wickets === 3) return 60;
   return balls;
 }
 
-// select team
-function selectTeam(team, el){
-  currentTeam = team;
-
-  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
-  el.classList.add("active");
-
-  drawGraph();
-}
-
-// main graph
-function drawGraph(){
-  if(!currentTeam) return;
-
+// get data for team
+function getTeamData(team){
   let labels = [];
-  let nrrData = [];
+  let data = [];
   let colors = [];
+  let count = 1;
 
-  let count = 1; // ✅ FIXED numbering
-
-  matches.forEach((m)=>{
-
+  matches.forEach(m=>{
     let wkA = m.wkA || 0;
     let wkB = m.wkB || 0;
 
@@ -104,23 +144,38 @@ function drawGraph(){
     let nrrA = (m.rA/(ballsA/6)) - (m.rB/(ballsB/6));
     let nrrB = (m.rB/(ballsB/6)) - (m.rA/(ballsA/6));
 
-    // TEAM A
-    if(m.teamA === currentTeam){
-      labels.push("M" + count);
-      nrrData.push(Number(nrrA.toFixed(2)));
+    if(m.teamA === team){
+      labels.push("M"+count);
+      data.push(Number(nrrA.toFixed(2)));
       colors.push(m.rA > m.rB ? "green" : "red");
       count++;
     }
 
-    // TEAM B
-    if(m.teamB === currentTeam){
-      labels.push("M" + count);
-      nrrData.push(Number(nrrB.toFixed(2)));
+    if(m.teamB === team){
+      labels.push("M"+count);
+      data.push(Number(nrrB.toFixed(2)));
       colors.push(m.rB > m.rA ? "green" : "red");
       count++;
     }
-
   });
+
+  return {labels,data,colors};
+}
+
+// draw graph
+function draw(){
+  let team1 = t1.value;
+  let team2 = t2.value;
+
+  let d1 = getTeamData(team1);
+  let d2 = getTeamData(team2);
+
+  let maxLen = Math.max(d1.labels.length, d2.labels.length);
+  let labels = [];
+
+  for(let i=1;i<=maxLen;i++){
+    labels.push("M"+i);
+  }
 
   let ctx = document.getElementById("chart");
 
@@ -130,25 +185,28 @@ function drawGraph(){
     type:"line",
     data:{
       labels:labels,
-      datasets:[{
-        label: currentTeam + " NRR",
-        data:nrrData,
-        borderColor:"#22c55e",
-        tension:0.4,
-        pointBackgroundColor: colors,
-        pointRadius:6
-      }]
+      datasets:[
+        {
+          label:team1,
+          data:d1.data,
+          borderColor:"#22c55e",
+          tension:0.4,
+          pointBackgroundColor:d1.colors,
+          pointRadius:6
+        },
+        {
+          label:team2,
+          data:d2.data,
+          borderColor:"#3b82f6",
+          tension:0.4,
+          pointBackgroundColor:d2.colors,
+          pointRadius:6
+        }
+      ]
     },
     options:{
       plugins:{
-        legend:{labels:{color:"white"}},
-        tooltip:{
-          callbacks:{
-            label:function(context){
-              return "NRR: " + context.raw;
-            }
-          }
-        }
+        legend:{labels:{color:"white"}}
       },
       scales:{
         x:{ticks:{color:"white"}},
@@ -157,6 +215,12 @@ function drawGraph(){
     }
   });
 }
+
+// trigger
+t1.onchange = draw;
+t2.onchange = draw;
+
+draw();
 
 </script>
 
