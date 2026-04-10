@@ -12,7 +12,6 @@
       margin:0;
     }
 
-    /* NAVBAR */
     .navbar{
       display:flex;
       justify-content:center;
@@ -31,7 +30,6 @@
       border-bottom:2px solid #22c55e;
     }
 
-    /* GRAPH */
     .graph{
       max-width:900px;
       margin:40px auto;
@@ -63,19 +61,19 @@ let matches = JSON.parse(localStorage.getItem("matches")) || [];
 let currentTeam = null;
 let chart;
 
-// CONVERT OVERS → BALLS
+// overs to balls
 function oversToBalls(o){
   let [a,b]=(o||"").split(".");
   return (parseInt(a)||0)*6 + (parseInt(b)||0);
 }
 
-// CALCULATE BALLS FACED (your rule)
+// your wicket rule
 function getBalls(balls, wickets){
   if(wickets === 3) return 60;
   return balls;
 }
 
-// SELECT TEAM
+// select team
 function selectTeam(team, el){
   currentTeam = team;
 
@@ -85,7 +83,7 @@ function selectTeam(team, el){
   drawGraph();
 }
 
-// DRAW GRAPH
+// main graph
 function drawGraph(){
   if(!currentTeam) return;
 
@@ -93,7 +91,9 @@ function drawGraph(){
   let nrrData = [];
   let colors = [];
 
-  matches.forEach((m,i)=>{
+  let count = 1; // ✅ FIXED numbering
+
+  matches.forEach((m)=>{
 
     let wkA = m.wkA || 0;
     let wkB = m.wkB || 0;
@@ -106,20 +106,18 @@ function drawGraph(){
 
     // TEAM A
     if(m.teamA === currentTeam){
-      labels.push("M" + (matches.length - i));
-      nrrData.push(nrrA.toFixed(2));
-
-      if(m.rA > m.rB) colors.push("green");
-      else colors.push("red");
+      labels.push("M" + count);
+      nrrData.push(Number(nrrA.toFixed(2)));
+      colors.push(m.rA > m.rB ? "green" : "red");
+      count++;
     }
 
     // TEAM B
     if(m.teamB === currentTeam){
-      labels.push("M" + (matches.length - i));
-      nrrData.push(nrrB.toFixed(2));
-
-      if(m.rB > m.rA) colors.push("green");
-      else colors.push("red");
+      labels.push("M" + count);
+      nrrData.push(Number(nrrB.toFixed(2)));
+      colors.push(m.rB > m.rA ? "green" : "red");
+      count++;
     }
 
   });
@@ -143,7 +141,14 @@ function drawGraph(){
     },
     options:{
       plugins:{
-        legend:{labels:{color:"white"}}
+        legend:{labels:{color:"white"}},
+        tooltip:{
+          callbacks:{
+            label:function(context){
+              return "NRR: " + context.raw;
+            }
+          }
+        }
       },
       scales:{
         x:{ticks:{color:"white"}},
