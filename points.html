@@ -15,7 +15,6 @@
       text-align:center;
       margin:20px 0;
       font-size:32px;
-      letter-spacing:1px;
     }
 
     .container {
@@ -41,12 +40,7 @@
       border:none;
       background:#020617;
       color:white;
-      outline:none;
       border:1px solid rgba(255,255,255,0.08);
-    }
-
-    input:focus, select:focus {
-      border:1px solid #22c55e;
     }
 
     button {
@@ -55,12 +49,6 @@
       border:none;
       border-radius:8px;
       cursor:pointer;
-      font-weight:600;
-      transition:0.2s;
-    }
-
-    button:hover {
-      background:#16a34a;
     }
 
     table {
@@ -72,30 +60,13 @@
       overflow:hidden;
     }
 
-    thead {
-      background:#020617;
-      border-bottom:1px solid rgba(255,255,255,0.1);
-    }
-
-    th {
+    th, td {
       padding:14px;
-      font-size:13px;
-      letter-spacing:1px;
-      color:#94a3b8;
-    }
-
-    td {
-      padding:14px;
-      font-weight:500;
+      text-align:center;
     }
 
     tbody tr {
-      transition:0.2s;
       border-bottom:1px solid rgba(255,255,255,0.05);
-    }
-
-    tbody tr:hover {
-      background:rgba(255,255,255,0.05);
     }
 
     .top4 {
@@ -117,42 +88,77 @@
       padding:3px;
     }
 
-    .rank {
-      font-size:12px;
-      color:#64748b;
-      margin-right:6px;
-    }
+    /* 🔥 NEW MATCH HISTORY UI */
 
     .card {
-      background:#020617;
-      padding:14px;
-      margin:12px 0;
-      border-radius:12px;
+      background: linear-gradient(145deg,#020617,#020617);
       border:1px solid rgba(255,255,255,0.08);
+      padding:16px;
+      margin:14px 0;
+      border-radius:14px;
+      transition:0.25s;
+    }
+
+    .card:hover {
+      transform:translateY(-3px);
+      border:1px solid rgba(34,197,94,0.4);
+    }
+
+    .match-row {
       display:flex;
       justify-content:space-between;
       align-items:center;
-      flex-wrap:wrap;
+      gap:20px;
+    }
+
+    .team-block {
+      display:flex;
+      align-items:center;
       gap:10px;
+      min-width:140px;
+    }
+
+    .team-block img {
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      background:#000;
+      padding:3px;
+    }
+
+    .score {
+      font-size:15px;
+      font-weight:600;
+    }
+
+    .overs {
+      font-size:12px;
+      color:#94a3b8;
+    }
+
+    .vs {
+      font-size:12px;
+      color:#64748b;
     }
 
     .result {
-      color:#22c55e;
+      margin-top:10px;
       font-weight:600;
+      color:#22c55e;
+    }
+
+    .actions {
+      margin-top:10px;
+      display:flex;
+      gap:8px;
     }
 
     .actions button {
       background:#1e293b;
-      margin-left:6px;
-    }
-
-    .actions button:hover {
-      background:#334155;
     }
 
     h2 {
       margin-top:30px;
-      font-size:22px;
     }
 
   </style>
@@ -326,15 +332,38 @@ function renderHistory(){
 
     div.innerHTML+=`
     <div class="card">
-      <div>
-        ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) vs 
-        ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
-        <div class="result">${getResult(m)}</div>
+
+      <div class="match-row">
+
+        <div class="team-block">
+          <img src="${teamLogos[m.teamA]}">
+          <div>
+            <div>${m.teamA}</div>
+            <div class="score">${m.rA}/${wkA}</div>
+            <div class="overs">${m.oversA} overs</div>
+          </div>
+        </div>
+
+        <div class="vs">VS</div>
+
+        <div class="team-block" style="justify-content:flex-end; text-align:right;">
+          <div>
+            <div>${m.teamB}</div>
+            <div class="score">${m.rB}/${wkB}</div>
+            <div class="overs">${m.oversB} overs</div>
+          </div>
+          <img src="${teamLogos[m.teamB]}">
+        </div>
+
       </div>
+
+      <div class="result">${getResult(m)}</div>
+
       <div class="actions">
         <button onclick="editMatch(${i})">Edit</button>
         <button onclick="deleteMatch(${i})">Delete</button>
       </div>
+
     </div>`;
   });
 }
