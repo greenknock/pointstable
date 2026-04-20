@@ -8,44 +8,134 @@
     body{
       margin:0;
       font-family:Segoe UI;
-      background:#020617;
+      background:
+        radial-gradient(circle at 20% 20%, #22c55e22, transparent),
+        radial-gradient(circle at 80% 80%, #3b82f622, transparent),
+        #020617;
       color:white;
-      text-align:center;
     }
 
     h1{
-      margin:20px;
+      text-align:center;
+      margin:25px 0 5px;
+      font-size:34px;
+    }
+
+    .sub{
+      text-align:center;
+      color:#94a3b8;
+      margin-bottom:20px;
     }
 
     .card{
-      max-width:900px;
+      max-width:1000px;
       margin:20px auto;
-      padding:20px;
+      padding:25px;
+      border-radius:18px;
       background:rgba(255,255,255,0.05);
-      border-radius:14px;
+      backdrop-filter:blur(15px);
+      box-shadow:0 25px 80px rgba(0,0,0,0.7);
+      animation:fadeUp 0.6s ease;
+    }
+
+    @keyframes fadeUp{
+      from{opacity:0; transform:translateY(20px);}
+      to{opacity:1; transform:translateY(0);}
     }
 
     canvas{
       width:100% !important;
     }
+
+    .list{
+      margin-top:25px;
+    }
+
+    .item{
+      display:flex;
+      align-items:center;
+      gap:15px;
+      padding:14px 18px;
+      margin:10px 0;
+      border-radius:12px;
+      background:rgba(255,255,255,0.04);
+      transition:0.3s;
+      opacity:0;
+      transform:translateY(10px);
+      animation:slideUp 0.5s forwards;
+    }
+
+    .item:hover{
+      transform:scale(1.03);
+      background:rgba(255,255,255,0.08);
+    }
+
+    @keyframes slideUp{
+      to{opacity:1; transform:translateY(0);}
+    }
+
+    .rank{
+      font-weight:bold;
+      font-size:18px;
+      width:40px;
+      text-align:center;
+    }
+
+    .logo{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      background:#000;
+      padding:3px;
+    }
+
+    .team{
+      flex:1;
+      font-weight:600;
+    }
+
+    .score{
+      font-weight:bold;
+      color:#22c55e;
+    }
+
+    .top{
+      background:linear-gradient(90deg,#22c55e33,#22c55e10);
+      border:1px solid #22c55e55;
+      box-shadow:0 0 20px #22c55e55;
+    }
+
   </style>
 </head>
 
 <body>
 
-<h1>🔥 Chase Master Leaderboard</h1>
+<h1>🔥 Chase Master</h1>
+<div class="sub">Who dominates while chasing</div>
 
 <div class="card">
   <canvas id="chart"></canvas>
+  <div class="list" id="list"></div>
 </div>
 
 <script>
 
 let matches = JSON.parse(localStorage.getItem("matches")) || [];
-
 let chart;
 
-// overs → balls
+const teamLogos = {
+  CSK:"./logos/CSK.png",
+  MI:"./logos/MI.png",
+  RCB:"./logos/RCB.png",
+  SRH:"./logos/SRH.png",
+  RR:"./logos/RR.png",
+  DC:"./logos/DC.png",
+  GT:"./logos/GT.png",
+  LSG:"./logos/LSG.png",
+  KKR:"./logos/KKR.png",
+  PBKS:"./logos/PBKS.png"
+};
+
 function oversToBalls(o){
   let [a,b]=(o||"").split(".");
   return (parseInt(a)||0)*6 + (parseInt(b)||0);
@@ -61,10 +151,7 @@ function getChaseLeaderboard(){
   let teams = {};
 
   matches.forEach(m=>{
-
     let chasing = m.batFirst === "A" ? m.teamB : m.teamA;
-    let defending = m.batFirst === "A" ? m.teamA : m.teamB;
-
     let winner = m.rA > m.rB ? m.teamA : m.teamB;
 
     if(winner !== chasing) return;
@@ -100,16 +187,13 @@ function getChaseLeaderboard(){
     teams[chasing].wins++;
   });
 
-  let result = Object.keys(teams).map(t=>{
+  return Object.keys(teams).map(t=>{
     let x = teams[t];
-
     let nrr = (x.runsFor/(x.ballsFaced/6)) - (x.runsAgainst/(x.ballsBowled/6));
     let score = (x.wins * 20) + nrr;
 
     return {team:t, score:score.toFixed(2)};
-  });
-
-  return result.sort((a,b)=>b.score-a.score);
+  }).sort((a,b)=>b.score-a.score);
 }
 
 function draw(){
@@ -121,24 +205,48 @@ function draw(){
 
   if(chart) chart.destroy();
 
-  chart = new Chart(document.getElementById("chart"),{
+  let ctx = document.getElementById("chart").getContext("2d");
+
+  let gradient = ctx.createLinearGradient(0,0,0,400);
+  gradient.addColorStop(0,"#22c55e");
+  gradient.addColorStop(1,"#3b82f6");
+
+  chart = new Chart(ctx,{
     type:"bar",
     data:{
       labels:labels,
       datasets:[{
-        label:"Chase Score",
-        data:scores
+        data:scores,
+        backgroundColor:gradient,
+        borderRadius:10
       }]
     },
     options:{
-      plugins:{
-        legend:{labels:{color:"white"}}
-      },
+      animation:{duration:1200},
+      plugins:{legend:{display:false}},
       scales:{
         x:{ticks:{color:"white"}},
         y:{ticks:{color:"white"}}
       }
     }
+  });
+
+  renderList(data);
+}
+
+function renderList(data){
+  let div = document.getElementById("list");
+  div.innerHTML = "";
+
+  data.forEach((t,i)=>{
+    div.innerHTML += `
+      <div class="item ${i===0?'top':''}" style="animation-delay:${i*0.1}s">
+        <div class="rank">${i+1}</div>
+        <img src="${teamLogos[t.team]}" class="logo">
+        <div class="team">${i===0?'🏆 ':''}${t.team}</div>
+        <div class="score">${t.score}</div>
+      </div>
+    `;
   });
 }
 
