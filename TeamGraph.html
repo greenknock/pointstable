@@ -63,6 +63,7 @@
       opacity:0;
       transform:translateY(10px);
       animation:slideUp 0.5s forwards;
+      cursor:pointer;
     }
 
     .item:hover{
@@ -105,6 +106,68 @@
       box-shadow:0 0 20px #22c55e55;
     }
 
+    /* POPUP */
+
+    .popup{
+      position:fixed;
+      top:0;
+      left:0;
+      width:100%;
+      height:100%;
+      background:rgba(0,0,0,0.7);
+      backdrop-filter:blur(8px);
+      display:none;
+      justify-content:center;
+      align-items:center;
+      z-index:999;
+    }
+
+    .popup-content{
+      width:500px;
+      max-height:80vh;
+      overflow-y:auto;
+      background:#020617;
+      border-radius:16px;
+      padding:20px;
+      animation:scaleIn 0.3s ease;
+    }
+
+    @keyframes scaleIn{
+      from{transform:scale(0.8); opacity:0;}
+      to{transform:scale(1); opacity:1;}
+    }
+
+    .popup-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:15px;
+      font-size:18px;
+      font-weight:bold;
+    }
+
+    .popup-header button{
+      background:#1e293b;
+      border:none;
+      padding:6px 10px;
+      border-radius:6px;
+      cursor:pointer;
+      color:white;
+    }
+
+    .match-mini{
+      background:rgba(255,255,255,0.05);
+      padding:12px;
+      border-radius:10px;
+      margin-bottom:10px;
+    }
+
+    .result{
+      color:#22c55e;
+      font-size:13px;
+      margin-top:5px;
+    }
+
   </style>
 </head>
 
@@ -116,6 +179,17 @@
 <div class="card">
   <canvas id="chart"></canvas>
   <div class="list" id="list"></div>
+</div>
+
+<!-- POPUP -->
+<div id="popup" class="popup">
+  <div class="popup-content">
+    <div class="popup-header">
+      <span id="popupTitle"></span>
+      <button onclick="closePopup()">✕</button>
+    </div>
+    <div id="popupBody"></div>
+  </div>
 </div>
 
 <script>
@@ -146,8 +220,31 @@ function getBalls(balls, wickets){
   return balls;
 }
 
-function getChaseLeaderboard(){
+function getResult(m){
+  let wkA = m.wkA || 0;
+  let wkB = m.wkB || 0;
+  let totalWickets = 3;
 
+  if(m.rA === m.rB) return "Match tied";
+
+  if(m.batFirst === "A"){
+    if(m.rB > m.rA){
+      let w = totalWickets - wkB;
+      return `${m.teamB} won by ${w} wicket${w>1?'s':''}`;
+    } else {
+      return `${m.teamA} won by ${m.rA - m.rB} runs`;
+    }
+  } else {
+    if(m.rA > m.rB){
+      let w = totalWickets - wkA;
+      return `${m.teamA} won by ${w} wicket${w>1?'s':''}`;
+    } else {
+      return `${m.teamB} won by ${m.rB - m.rA} runs`;
+    }
+  }
+}
+
+function getChaseLeaderboard(){
   let teams = {};
 
   matches.forEach(m=>{
@@ -240,7 +337,7 @@ function renderList(data){
 
   data.forEach((t,i)=>{
     div.innerHTML += `
-      <div class="item ${i===0?'top':''}" style="animation-delay:${i*0.1}s">
+      <div class="item ${i===0?'top':''}" onclick="openPopup('${t.team}')" style="animation-delay:${i*0.1}s">
         <div class="rank">${i+1}</div>
         <img src="${teamLogos[t.team]}" class="logo">
         <div class="team">${i===0?'🏆 ':''}${t.team}</div>
@@ -248,6 +345,44 @@ function renderList(data){
       </div>
     `;
   });
+}
+
+function openPopup(team){
+  let popup = document.getElementById("popup");
+  let body = document.getElementById("popupBody");
+  let title = document.getElementById("popupTitle");
+
+  title.innerText = team + " Chase Wins";
+  body.innerHTML = "";
+
+  let filtered = matches.filter(m=>{
+    let chasing = m.batFirst === "A" ? m.teamB : m.teamA;
+    let winner = m.rA > m.rB ? m.teamA : m.teamB;
+    return chasing === team && winner === team;
+  });
+
+  if(filtered.length === 0){
+    body.innerHTML = "<div>No chase wins</div>";
+  }
+
+  filtered.forEach(m=>{
+    let wkA = m.wkA || 0;
+    let wkB = m.wkB || 0;
+
+    body.innerHTML += `
+      <div class="match-mini">
+        ${m.teamA} ${m.rA}/${wkA} (${m.oversA}) <br>
+        ${m.teamB} ${m.rB}/${wkB} (${m.oversB})
+        <div class="result">${getResult(m)}</div>
+      </div>
+    `;
+  });
+
+  popup.style.display = "flex";
+}
+
+function closePopup(){
+  document.getElementById("popup").style.display = "none";
 }
 
 draw();
