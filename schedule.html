@@ -1,160 +1,200 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Match Schedule</title>
+<title>Match Schedule</title>
 
-  <style>
-    body {
-      background:#020617;
-      color:white;
-      font-family:sans-serif;
-      padding:20px;
-    }
+<style>
+body{
+  background:#020617;
+  color:white;
+  font-family:sans-serif;
+  padding:20px;
+}
 
-    h1 { margin-bottom:20px; }
-    h2 { margin-top:30px; color:#22c55e; }
+h1,h2{margin:20px 0;}
 
-    .match {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      background:#1e293b;
-      padding:12px 20px;
-      border-radius:12px;
-      margin:10px 0;
-      transition:0.3s;
-      cursor:pointer;
-    }
+.match{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#1e293b;
+  padding:12px 20px;
+  border-radius:12px;
+  margin:10px 0;
+  cursor:pointer;
+  transition:0.3s;
+}
 
-    .match:hover {
-      transform:scale(1.02);
-      background:#334155;
-    }
+.match:hover{background:#334155;}
 
-    .match.completed {
-      background:#052e1f;
-      border:1px solid #22c55e;
-      cursor:not-allowed;
-      opacity:0.7;
-    }
+.team{display:flex;align-items:center;gap:10px;}
+.team img{width:30px;}
 
-    .team {
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
+.center{opacity:0.6;}
 
-    .team img {
-      width:30px;
-    }
+.winner-screen{
+  text-align:center;
+  margin-top:100px;
+  font-size:40px;
+}
 
-    .vs { opacity:0.6; }
-
-    .status {
-      font-size:12px;
-      padding:4px 10px;
-      border-radius:20px;
-    }
-
-    .done { background:#22c55e; color:black; }
-    .upcoming { background:#334155; }
-
-    button {
-      margin-bottom:20px;
-      padding:10px 15px;
-      background:#14532d;
-      color:white;
-      border:none;
-      border-radius:6px;
-      cursor:pointer;
-    }
-  </style>
+.winner-screen img{
+  width:120px;
+  margin-top:20px;
+}
+</style>
 </head>
 
 <body>
 
-<button onclick="location.href='index.html'">← Back</button>
-
-<h1>Match Schedule (League Stage)</h1>
+<h1 id="title">Match Schedule</h1>
+<div id="container"></div>
 
 <script>
+
 const logos = {
-  CSK:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/csk.png",
-  MI:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/mi.png",
-  RCB:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rcb.png",
-  SRH:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/srh.png",
-  RR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rr.png",
-  DC:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/dc.png",
-  GT:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/gt.png",
-  LSG:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/lsg.png",
-  KKR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/kkr.png",
-  PBKS:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/pbks.png"
+CSK:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/csk.png",
+MI:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/mi.png",
+RCB:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rcb.png",
+SRH:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/srh.png",
+RR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/rr.png",
+DC:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/dc.png",
+GT:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/gt.png",
+LSG:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/lsg.png",
+KKR:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/kkr.png",
+PBKS:"https://cdn.jsdelivr.net/gh/iamshaunjp/web-assets@master/ipl/pbks.png"
 };
 
-let played = JSON.parse(localStorage.getItem("matches")) || [];
+let matches = JSON.parse(localStorage.getItem("matches")) || [];
+let playoffs = JSON.parse(localStorage.getItem("playoffs")) || {};
 
-// 🔴 STRICT FIXTURE MATCH (NO REVERSE)
-function isPlayed(team1, team2){
-  return played.some(m =>
-    m.teamA === team1 && m.teamB === team2
-  );
+// ---------- POINTS TABLE ----------
+const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
+
+function resetTable(){
+  return teams.map(t=>({team:t,pts:0,nrr:0,rf:0,ra:0,bf:0,bb:0}));
 }
 
-const schedule = [
-["WEEK 1",["RCB","MI"],["PBKS","LSG"],["DC","GT"],["CSK","SRH"],["KKR","RR"]],
-["WEEK 2",["RCB","LSG"],["PBKS","GT"],["DC","SRH"],["CSK","RR"],["KKR","MI"]],
-["WEEK 3",["RCB","GT"],["PBKS","SRH"],["DC","RR"],["CSK","MI"],["KKR","LSG"]],
-["WEEK 4",["RCB","SRH"],["PBKS","RR"],["DC","MI"],["CSK","LSG"],["KKR","GT"]],
-["WEEK 5",["RCB","RR"],["PBKS","MI"],["DC","LSG"],["CSK","GT"],["KKR","SRH"]],
-["WEEK 6",["MI","RCB"],["LSG","PBKS"],["GT","DC"],["SRH","CSK"],["RR","KKR"]],
-["WEEK 7",["LSG","RCB"],["GT","PBKS"],["SRH","DC"],["RR","CSK"],["MI","KKR"]],
-["WEEK 8",["GT","RCB"],["SRH","PBKS"],["RR","DC"],["MI","CSK"],["LSG","KKR"]],
-["WEEK 9",["SRH","RCB"],["RR","PBKS"],["MI","DC"],["LSG","CSK"],["GT","KKR"]],
-["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
-];
+function oversToBalls(o){
+  let [a,b]=(o||"").split(".");
+  return (parseInt(a)||0)*6+(parseInt(b)||0);
+}
 
-const container = document.body;
+function rebuild(){
+  let table=resetTable();
 
-schedule.forEach(week => {
-  const title = document.createElement("h2");
-  title.innerText = week[0];
-  container.appendChild(title);
+  matches.forEach(m=>{
+    let A=table.find(t=>t.team===m.teamA);
+    let B=table.find(t=>t.team===m.teamB);
 
-  week.slice(1).forEach(match => {
+    let bA=oversToBalls(m.oversA);
+    let bB=oversToBalls(m.oversB);
 
-    const done = isPlayed(match[0], match[1]);
+    A.rf+=m.rA; A.ra+=m.rB; A.bf+=bA; A.bb+=bB;
+    B.rf+=m.rB; B.ra+=m.rA; B.bf+=bB; B.bb+=bA;
 
-    const div = document.createElement("div");
-    div.className = "match " + (done ? "completed" : "");
+    if(m.rA>m.rB){A.pts+=2;}
+    else if(m.rB>m.rA){B.pts+=2;}
+  });
 
-    div.innerHTML = `
-      <div class="team">
-        <img src="${logos[match[0]]}">
-        ${match[0]}
+  table.forEach(t=>{
+    t.nrr=((t.rf/(t.bf/6))-(t.ra/(t.bb/6)))||0;
+  });
+
+  return table.sort((a,b)=>b.pts-a.pts||b.nrr-a.nrr);
+}
+
+// ---------- CHECK LEAGUE DONE ----------
+const TOTAL_MATCHES = 50;
+
+if(matches.length < TOTAL_MATCHES){
+  document.getElementById("title").innerText = "League Stage Ongoing";
+  document.getElementById("container").innerHTML = "Finish all matches first";
+}
+
+// ---------- PLAYOFFS ----------
+else{
+
+  let table = rebuild();
+  let top4 = table.slice(0,4).map(t=>t.team);
+
+  if(!playoffs.q1){
+    playoffs.q1 = {A:top4[0], B:top4[1]};
+    playoffs.elim = {A:top4[2], B:top4[3]};
+    localStorage.setItem("playoffs",JSON.stringify(playoffs));
+  }
+
+  renderPlayoffs();
+}
+
+function renderMatch(title, obj, key){
+  if(!obj) return "";
+
+  return `
+    <h2>${title}</h2>
+    <div class="match">
+      <div class="team" onclick="win('${key}','A')">
+        <img src="${logos[obj.A]}">${obj.A}
       </div>
 
-      <div class="vs">VS</div>
+      <div class="center">VS</div>
 
-      <div class="team">
-        ${match[1]}
-        <img src="${logos[match[1]]}">
+      <div class="team" onclick="win('${key}','B')">
+        ${obj.B}<img src="${logos[obj.B]}">
       </div>
+    </div>
+  `;
+}
 
-      <div class="status ${done ? 'done' : 'upcoming'}">
-        ${done ? 'Completed' : 'Upcoming'}
+function renderPlayoffs(){
+  let c = document.getElementById("container");
+
+  if(playoffs.finalWinner){
+    c.innerHTML = `
+      <div class="winner-screen">
+        🏆 WINNER 🏆 <br>
+        ${playoffs.finalWinner}
+        <br>
+        <img src="${logos[playoffs.finalWinner]}">
       </div>
     `;
+    return;
+  }
 
-    // 🔴 LOCK SYSTEM
-    if(!done){
-      div.onclick = () => {
-        window.location.href = `points.html?teamA=${match[0]}&teamB=${match[1]}`;
-      };
-    }
+  c.innerHTML = `
+    ${renderMatch("Qualifier 1", playoffs.q1, "q1")}
+    ${renderMatch("Eliminator", playoffs.elim, "elim")}
+    ${playoffs.q2 ? renderMatch("Qualifier 2", playoffs.q2, "q2") : ""}
+    ${playoffs.final ? renderMatch("Final", playoffs.final, "final") : ""}
+  `;
+}
 
-    container.appendChild(div);
-  });
-});
+function win(stage, side){
+
+  let winner = playoffs[stage][side];
+  let loser = playoffs[stage][side==="A"?"B":"A"];
+
+  if(stage==="q1"){
+    playoffs.final = {A:winner};
+    playoffs.q2 = {B:loser};
+  }
+
+  else if(stage==="elim"){
+    playoffs.q2.A = winner;
+  }
+
+  else if(stage==="q2"){
+    playoffs.final.B = winner;
+  }
+
+  else if(stage==="final"){
+    playoffs.finalWinner = winner;
+  }
+
+  localStorage.setItem("playoffs",JSON.stringify(playoffs));
+  renderPlayoffs();
+}
+
 </script>
 
 </body>
