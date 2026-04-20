@@ -11,7 +11,8 @@ body{
   padding:20px;
 }
 
-h1,h2{margin:20px 0;}
+h1{margin-bottom:20px;}
+h2{margin-top:30px;color:#22c55e;}
 
 .match{
   display:flex;
@@ -25,170 +26,202 @@ h1,h2{margin:20px 0;}
   transition:0.3s;
 }
 
-.match:hover{background:#334155;}
+.match:hover{transform:scale(1.02);}
+
+.completed{
+  background:#052e1f;
+  border:1px solid #22c55e;
+  cursor:not-allowed;
+  box-shadow:0 0 10px #22c55e;
+}
 
 .team{display:flex;align-items:center;gap:10px;}
 .team img{width:30px;}
 
-.center{opacity:0.6;}
+.status{
+  font-size:12px;
+  padding:4px 10px;
+  border-radius:20px;
+}
+
+.done{background:#22c55e;color:black;}
+.upcoming{background:#334155;}
 
 .winner-screen{
   text-align:center;
-  margin-top:100px;
   font-size:40px;
-}
-
-.winner-screen img{
-  width:120px;
-  margin-top:20px;
+  margin-top:100px;
 }
 </style>
 </head>
 
 <body>
 
-<h1 id="title">Match Schedule</h1>
+<h1 id="title">League Stage</h1>
 <div id="container"></div>
 
 <script>
 
 const logos = {
- CSK:"./logos/CSK.png",
-  MI:"./logos/MI.png",
-  RCB:"./logos/RCB.png",
-  SRH:"./logos/SRH.png",
-  RR:"./logos/RR.png",
-  DC:"./logos/DC.png",
-  GT:"./logos/GT.png",
-  LSG:"./logos/LSG.png",
-  KKR:"./logos/KKR.png",
-  PBKS:"./logos/PBKS.png"
+CSK:"./logos/CSK.png",
+MI:"./logos/MI.png",
+RCB:"./logos/RCB.png",
+SRH:"./logos/SRH.png",
+RR:"./logos/RR.png",
+DC:"./logos/DC.png",
+GT:"./logos/GT.png",
+LSG:"./logos/LSG.png",
+KKR:"./logos/KKR.png",
+PBKS:"./logos/PBKS.png"
 };
 
-let matches = JSON.parse(localStorage.getItem("matches")) || [];
+let played = JSON.parse(localStorage.getItem("matches")) || [];
 let playoffs = JSON.parse(localStorage.getItem("playoffs")) || {};
 
-// ---------- POINTS TABLE ----------
-const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
-
-function resetTable(){
-  return teams.map(t=>({team:t,pts:0,nrr:0,rf:0,ra:0,bf:0,bb:0}));
+function isPlayed(a,b){
+  return played.some(m => m.teamA===a && m.teamB===b);
 }
 
-function oversToBalls(o){
-  let [a,b]=(o||"").split(".");
-  return (parseInt(a)||0)*6+(parseInt(b)||0);
-}
+const schedule = [
+["WEEK 1",["RCB","MI"],["PBKS","LSG"],["DC","GT"],["CSK","SRH"],["KKR","RR"]],
+["WEEK 2",["RCB","LSG"],["PBKS","GT"],["DC","SRH"],["CSK","RR"],["KKR","MI"]],
+["WEEK 3",["RCB","GT"],["PBKS","SRH"],["DC","RR"],["CSK","MI"],["KKR","LSG"]],
+["WEEK 4",["RCB","SRH"],["PBKS","RR"],["DC","MI"],["CSK","LSG"],["KKR","GT"]],
+["WEEK 5",["RCB","RR"],["PBKS","MI"],["DC","LSG"],["CSK","GT"],["KKR","SRH"]],
+["WEEK 6",["MI","RCB"],["LSG","PBKS"],["GT","DC"],["SRH","CSK"],["RR","KKR"]],
+["WEEK 7",["LSG","RCB"],["GT","PBKS"],["SRH","DC"],["RR","CSK"],["MI","KKR"]],
+["WEEK 8",["GT","RCB"],["SRH","PBKS"],["RR","DC"],["MI","CSK"],["LSG","KKR"]],
+["WEEK 9",["SRH","RCB"],["RR","PBKS"],["MI","DC"],["LSG","CSK"],["GT","KKR"]],
+["WEEK 10",["RR","RCB"],["MI","PBKS"],["LSG","DC"],["GT","CSK"],["SRH","KKR"]]
+];
 
-function rebuild(){
-  let table=resetTable();
-
-  matches.forEach(m=>{
-    let A=table.find(t=>t.team===m.teamA);
-    let B=table.find(t=>t.team===m.teamB);
-
-    let bA=oversToBalls(m.oversA);
-    let bB=oversToBalls(m.oversB);
-
-    A.rf+=m.rA; A.ra+=m.rB; A.bf+=bA; A.bb+=bB;
-    B.rf+=m.rB; B.ra+=m.rA; B.bf+=bB; B.bb+=bA;
-
-    if(m.rA>m.rB){A.pts+=2;}
-    else if(m.rB>m.rA){B.pts+=2;}
-  });
-
-  table.forEach(t=>{
-    t.nrr=((t.rf/(t.bf/6))-(t.ra/(t.bb/6)))||0;
-  });
-
-  return table.sort((a,b)=>b.pts-a.pts||b.nrr-a.nrr);
-}
-
-// ---------- CHECK LEAGUE DONE ----------
 const TOTAL_MATCHES = 50;
 
-if(matches.length < TOTAL_MATCHES){
-  document.getElementById("title").innerText = "League Stage Ongoing";
-  document.getElementById("container").innerHTML = "Finish all matches first";
+if(played.length === TOTAL_MATCHES){
+  startPlayoffs();
+}else{
+  renderLeague();
 }
 
-// ---------- PLAYOFFS ----------
-else{
+function renderLeague(){
+  let c = document.getElementById("container");
+  c.innerHTML = "";
 
-  let table = rebuild();
+  schedule.forEach(week=>{
+    let h = document.createElement("h2");
+    h.innerText = week[0];
+    c.appendChild(h);
+
+    week.slice(1).forEach(match=>{
+      let done = isPlayed(match[0],match[1]);
+
+      let div = document.createElement("div");
+      div.className = "match " + (done?"completed":"");
+
+      div.innerHTML = `
+        <div class="team"><img src="${logos[match[0]]}">${match[0]}</div>
+        <div>VS</div>
+        <div class="team">${match[1]}<img src="${logos[match[1]]}"></div>
+        <div class="status ${done?'done':'upcoming'}">${done?'Completed':'Upcoming'}</div>
+      `;
+
+      if(!done){
+        div.onclick = ()=>{
+          location.href = `points.html?teamA=${match[0]}&teamB=${match[1]}`;
+        };
+      }
+
+      c.appendChild(div);
+    });
+  });
+}
+
+function startPlayoffs(){
+  document.getElementById("title").innerText = "Playoffs";
+
+  let table = buildTable();
   let top4 = table.slice(0,4).map(t=>t.team);
 
   if(!playoffs.q1){
-    playoffs.q1 = {A:top4[0], B:top4[1]};
-    playoffs.elim = {A:top4[2], B:top4[3]};
+    playoffs.q1 = {A:top4[0],B:top4[1]};
+    playoffs.elim = {A:top4[2],B:top4[3]};
     localStorage.setItem("playoffs",JSON.stringify(playoffs));
   }
 
   renderPlayoffs();
 }
 
-function renderMatch(title, obj, key){
-  if(!obj) return "";
+const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
 
-  return `
-    <h2>${title}</h2>
-    <div class="match">
-      <div class="team" onclick="win('${key}','A')">
-        <img src="${logos[obj.A]}">${obj.A}
-      </div>
+function buildTable(){
+  let table = teams.map(t=>({team:t,pts:0}));
 
-      <div class="center">VS</div>
+  played.forEach(m=>{
+    let A = table.find(t=>t.team===m.teamA);
+    let B = table.find(t=>t.team===m.teamB);
 
-      <div class="team" onclick="win('${key}','B')">
-        ${obj.B}<img src="${logos[obj.B]}">
-      </div>
-    </div>
-  `;
+    if(m.rA>m.rB){A.pts+=2;}
+    else if(m.rB>m.rA){B.pts+=2;}
+  });
+
+  return table.sort((a,b)=>b.pts-a.pts);
 }
 
 function renderPlayoffs(){
   let c = document.getElementById("container");
 
-  if(playoffs.finalWinner){
+  if(playoffs.winner){
     c.innerHTML = `
       <div class="winner-screen">
-        🏆 WINNER 🏆 <br>
-        ${playoffs.finalWinner}
-        <br>
-        <img src="${logos[playoffs.finalWinner]}">
+        🏆 WINNER 🏆<br>${playoffs.winner}<br>
+        <img src="${logos[playoffs.winner]}" width="120">
       </div>
     `;
     return;
   }
 
   c.innerHTML = `
-    ${renderMatch("Qualifier 1", playoffs.q1, "q1")}
-    ${renderMatch("Eliminator", playoffs.elim, "elim")}
-    ${playoffs.q2 ? renderMatch("Qualifier 2", playoffs.q2, "q2") : ""}
-    ${playoffs.final ? renderMatch("Final", playoffs.final, "final") : ""}
+    ${matchBox("Qualifier 1","q1")}
+    ${matchBox("Eliminator","elim")}
+    ${playoffs.q2?matchBox("Qualifier 2","q2"):""}
+    ${playoffs.final?matchBox("Final","final"):""}
   `;
 }
 
-function win(stage, side){
+function matchBox(title,key){
+  let m = playoffs[key];
+  if(!m) return "";
 
-  let winner = playoffs[stage][side];
-  let loser = playoffs[stage][side==="A"?"B":"A"];
+  return `
+    <h2>${title}</h2>
+    <div class="match">
+      <div class="team" onclick="win('${key}','A')">
+        <img src="${logos[m.A]}">${m.A}
+      </div>
+      <div>VS</div>
+      <div class="team" onclick="win('${key}','B')">
+        ${m.B}<img src="${logos[m.B]}">
+      </div>
+    </div>
+  `;
+}
+
+function win(stage,side){
+  let w = playoffs[stage][side];
+  let l = playoffs[stage][side==="A"?"B":"A"];
 
   if(stage==="q1"){
-    playoffs.final = {A:winner};
-    playoffs.q2 = {B:loser};
+    playoffs.final = {A:w};
+    playoffs.q2 = {B:l};
   }
-
   else if(stage==="elim"){
-    playoffs.q2.A = winner;
+    playoffs.q2.A = w;
   }
-
   else if(stage==="q2"){
-    playoffs.final.B = winner;
+    playoffs.final.B = w;
   }
-
   else if(stage==="final"){
-    playoffs.finalWinner = winner;
+    playoffs.winner = w;
   }
 
   localStorage.setItem("playoffs",JSON.stringify(playoffs));
