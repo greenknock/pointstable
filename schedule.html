@@ -62,6 +62,9 @@ h2{margin-top:30px;color:#22c55e;}
 
 <script>
 
+// ✅ FIXED POSITION (VERY IMPORTANT)
+const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
+
 const logos = {
 CSK:"./logos/CSK.png",
 MI:"./logos/MI.png",
@@ -97,12 +100,14 @@ const schedule = [
 
 const TOTAL_MATCHES = 50;
 
+// ---------- MAIN FLOW ----------
 if(played.length === TOTAL_MATCHES){
   startPlayoffs();
 }else{
   renderLeague();
 }
 
+// ---------- LEAGUE ----------
 function renderLeague(){
   let c = document.getElementById("container");
   c.innerHTML = "";
@@ -136,6 +141,7 @@ function renderLeague(){
   });
 }
 
+// ---------- PLAYOFF START ----------
 function startPlayoffs(){
   document.getElementById("title").innerText = "Playoffs";
 
@@ -151,8 +157,7 @@ function startPlayoffs(){
   renderPlayoffs();
 }
 
-const teams = ["CSK","MI","RCB","SRH","RR","DC","GT","LSG","KKR","PBKS"];
-
+// ---------- TABLE ----------
 function buildTable(){
   let table = teams.map(t=>({team:t,pts:0}));
 
@@ -167,6 +172,7 @@ function buildTable(){
   return table.sort((a,b)=>b.pts-a.pts);
 }
 
+// ---------- PLAYOFF RENDER ----------
 function renderPlayoffs(){
   let c = document.getElementById("container");
 
@@ -188,6 +194,7 @@ function renderPlayoffs(){
   `;
 }
 
+// ---------- MATCH BOX ----------
 function matchBox(title,key){
   let m = playoffs[key];
   if(!m) return "";
@@ -206,6 +213,7 @@ function matchBox(title,key){
   `;
 }
 
+// ---------- FLOW ----------
 function win(stage,side){
   let w = playoffs[stage][side];
   let l = playoffs[stage][side==="A"?"B":"A"];
