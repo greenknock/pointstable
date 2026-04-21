@@ -13,7 +13,9 @@
 
     h1{
       text-align:center;
-      margin-bottom:20px;
+      margin-bottom:25px;
+      font-size:32px;
+      letter-spacing:1px;
     }
 
     .container{
@@ -24,13 +26,14 @@
 
     .input-box {
       display:flex;
-      gap:10px;
+      gap:12px;
       flex-wrap:wrap;
-      margin-bottom:25px;
-      background: rgba(255,255,255,0.05);
-      padding:15px;
-      border-radius:14px;
-      backdrop-filter: blur(10px);
+      margin-bottom:30px;
+      background: rgba(255,255,255,0.04);
+      padding:18px;
+      border-radius:16px;
+      backdrop-filter: blur(12px);
+      border:1px solid rgba(255,255,255,0.08);
     }
 
     input, select {
@@ -40,56 +43,88 @@
       background:#020617;
       color:white;
       outline:none;
+      border:1px solid rgba(255,255,255,0.08);
+    }
+
+    input:focus, select:focus {
+      border:1px solid #22c55e;
     }
 
     button {
-      padding:8px 14px;
+      padding:10px 16px;
       background:#22c55e;
       border:none;
       border-radius:10px;
       cursor:pointer;
       font-weight:bold;
+      transition:0.2s;
+    }
+
+    button:hover {
+      background:#16a34a;
+      transform:scale(1.05);
     }
 
     .delete-btn {
+      background:#1e293b;
+      margin-top:10px;
+    }
+
+    .delete-btn:hover {
       background:#ef4444;
-      margin-top:8px;
     }
 
     .card {
       background: linear-gradient(145deg,#0f172a,#1e293b);
-      padding:16px;
-      margin:12px 0;
-      border-radius:14px;
-      transition: all 0.4s ease;
+      padding:18px;
+      margin:14px 0;
+      border-radius:16px;
+      transition: all 0.3s ease;
       position:relative;
+      border:1px solid rgba(255,255,255,0.05);
     }
 
-    .top { font-weight:bold; font-size:18px; }
+    .card:hover{
+      transform:translateY(-4px) scale(1.01);
+      box-shadow:0 15px 40px rgba(0,0,0,0.6);
+    }
+
+    .top {
+      font-weight:bold;
+      font-size:18px;
+    }
 
     .gold{ color:#facc15; }
     .silver{ color:#cbd5f5; }
     .bronze{ color:#fb923c; }
 
-    .stats{ margin-top:8px; font-size:14px; }
-    .points{ font-weight:bold; margin-top:5px; }
+    .stats{
+      margin-top:10px;
+      font-size:14px;
+      color:#cbd5f5;
+    }
+
+    .points{
+      font-weight:bold;
+      margin-top:8px;
+      font-size:15px;
+    }
 
     .bar{
       height:6px;
       border-radius:6px;
-      margin-top:10px;
+      margin-top:12px;
       background:#020617;
       overflow:hidden;
     }
 
     .fill{
       height:100%;
-      background: linear-gradient(90deg,#22c55e,#4ade80);
+      background: linear-gradient(90deg,#22c55e,#4ade80,#3b82f6);
       width:0%;
       transition:width 0.6s ease;
     }
 
-    /* RANK CHANGE EFFECTS */
     .up {
       animation: glowUp 0.6s;
     }
@@ -100,13 +135,13 @@
 
     @keyframes glowUp {
       0% { box-shadow:0 0 0px #22c55e; }
-      50% { box-shadow:0 0 20px #22c55e; }
+      50% { box-shadow:0 0 25px #22c55e; }
       100% { box-shadow:0 0 0px #22c55e; }
     }
 
     @keyframes glowDown {
       0% { box-shadow:0 0 0px #ef4444; }
-      50% { box-shadow:0 0 20px #ef4444; }
+      50% { box-shadow:0 0 25px #ef4444; }
       100% { box-shadow:0 0 0px #ef4444; }
     }
 
@@ -133,7 +168,7 @@
 
 <script>
 
-// PLAYERS
+// PLAYERS (added David Miller)
 const players = [
   "Shimron Hetmyer","Yashasvi Jaiswal","Vaibhav Sooryavanshi",
   "Manish Pandey","Cameron Green","Finn Allen","Mitchell Marsh",
@@ -142,17 +177,16 @@ const players = [
   "Nitish Rana","KL Rahul","Travis Head","Abhishek Sharma",
   "Ishan Kishan","Shubman Gill","Marco Jansen","Marcus Stoinis",
   "Shreyas Iyer","Rajat Patidar","Phil Salt","MS Dhoni",
-  "Virat Kohli","Ruturaj Gaikwad","Sanju Samson"
+  "Virat Kohli","Ruturaj Gaikwad","Sanju Samson",
+  "David Miller"
 ];
 
 const playerSelect = document.getElementById("player");
 players.forEach(p=> playerSelect.innerHTML += `<option>${p}</option>`);
 
-// DATA
 let data = JSON.parse(localStorage.getItem("mvpData")) || {};
-let prevRanks = {}; // store old positions
+let prevRanks = {};
 
-// POINTS
 function calculatePoints(runs, sr){
   let points = runs;
 
@@ -167,7 +201,6 @@ function calculatePoints(runs, sr){
   return points;
 }
 
-// ADD
 function addPlayer(){
   let name = playerSelect.value;
   let runs = parseInt(document.getElementById("runs").value);
@@ -194,23 +227,16 @@ function addPlayer(){
     };
   }
 
-  saveData();
+  localStorage.setItem("mvpData", JSON.stringify(data));
   render();
 }
 
-// SAVE
-function saveData(){
-  localStorage.setItem("mvpData", JSON.stringify(data));
-}
-
-// DELETE
 function deletePlayer(name){
   delete data[name];
-  saveData();
+  localStorage.setItem("mvpData", JSON.stringify(data));
   render();
 }
 
-// RENDER
 function render(){
   let div = document.getElementById("mvpList");
   div.innerHTML = "";
@@ -241,7 +267,6 @@ function render(){
 
     let width = (p.pts / maxPoints) * 100;
 
-    // detect rank change
     let animationClass = "";
     if(prevRanks[p.name] !== undefined){
       if(i < prevRanks[p.name]) animationClass = "up";
@@ -276,7 +301,6 @@ function render(){
   });
 }
 
-// RESET
 function resetMVP(){
   data = {};
   prevRanks = {};
@@ -284,7 +308,6 @@ function resetMVP(){
   render();
 }
 
-// INIT
 render();
 
 </script>
